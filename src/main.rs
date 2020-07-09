@@ -60,14 +60,14 @@ async fn main() {
         })
         .map(handlebars.clone())
     };
-
+    let valve_paths = get_valve_paths(hb.clone(), config.clone());
     let static_content = warp::path("static").and(warp::fs::dir("./static/"));
 
-    let route = warp::get().and(root.or(static_content).or(valve));
+    let route = warp::get().and(root.or(static_content).or(valve_paths));
     warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
 }
 
-fn return_value(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter{
+fn get_valve_paths(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter + Clone + '_{
         let hb = hb.clone();
         let handlebars = move |with_template| render(with_template, hb.clone());
         warp::path("valves")
