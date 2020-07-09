@@ -1,4 +1,4 @@
-use serde::{Serialize, Serializer, Deserialize};
+use serde::{Serialize, Deserialize};
 use reqwest::Url;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,7 +26,7 @@ impl Valve {
     }
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub valves: Vec<Valve>,
     pub adress: Url

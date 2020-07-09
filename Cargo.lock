@@ -1558,6 +1558,7 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]
@@ -1730,6 +1731,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
  "warp",
 ]
 

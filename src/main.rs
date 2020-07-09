@@ -51,21 +51,26 @@ async fn main() {
     };
     let config = Arc::new(config);
     //GET /
-    let root = warp::path::end()
-        .map(|| WithTemplate {
+    let root = {
+        let config = config.clone();
+        warp::path::end()
+        .map(move || WithTemplate {
             name: "index",
-            value: json!({ "Valves": vec![Valve::new("blub", 0)] }),
+            value: json!(*config),
         })
-        .map(handlebars.clone());
+        .map(handlebars.clone())
+    };
 
     let static_content = warp::path("static").and(warp::fs::dir("./static/"));
 
     let valve = warp::path("valves")
         .and(warp::path::param())
         .and(warp::path::end())
-        .map(|_: i16| WithTemplate {
+        .map(move |i: usize| WithTemplate {
             name: "details",
-            value: json!(Valve::new("blub", 0)),
+            value: json!(
+                (*config).valves[i]
+            ),
         })
         .map(handlebars.clone());
 
