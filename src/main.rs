@@ -3,7 +3,7 @@ use std::sync::Arc;
 use handlebars::Handlebars;
 use serde::Serialize;
 use serde_json::json;
-use warp::Filter;
+use warp::{Filter, Rejection};
 
 use reqwest::Url;
 
@@ -67,10 +67,10 @@ async fn main() {
     warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
 }
 
-fn get_valve_paths(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter + Clone + '_{
+fn get_valve_paths(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone + '_{
         let hb = hb.clone();
         let handlebars = move |with_template| render(with_template, hb.clone());
-        warp::path("valves")
+        let a = warp::path("valves")
         .and(warp::path::param())
         .and(warp::path::end())
         .map(move |i: usize| WithTemplate {
@@ -79,5 +79,6 @@ fn get_valve_paths(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter + 
                 (*config).valves[i]
             ),
         })
-        .map(handlebars.clone())
+        .map(handlebars.clone());
+        a
 }
