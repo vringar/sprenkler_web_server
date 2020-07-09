@@ -63,7 +63,14 @@ async fn main() {
 
     let static_content = warp::path("static").and(warp::fs::dir("./static/"));
 
-    let valve = warp::path("valves")
+    let route = warp::get().and(root.or(static_content).or(valve));
+    warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
+}
+
+fn return_value(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter{
+        let hb = hb.clone();
+        let handlebars = move |with_template| render(with_template, hb.clone());
+        warp::path("valves")
         .and(warp::path::param())
         .and(warp::path::end())
         .map(move |i: usize| WithTemplate {
@@ -72,8 +79,5 @@ async fn main() {
                 (*config).valves[i]
             ),
         })
-        .map(handlebars.clone());
-
-    let route = warp::get().and(root.or(static_content).or(valve));
-    warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
+        .map(handlebars.clone())
 }
