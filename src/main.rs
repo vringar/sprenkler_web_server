@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use handlebars::Handlebars;
-use serde::Serialize;
+
 use serde_json::json;
-use warp::{Filter, Rejection};
+use warp::Filter;
 
 use reqwest::Url;
 
@@ -11,20 +11,12 @@ mod datamodel;
 use datamodel::Config;
 use datamodel::Valve;
 
-struct WithTemplate<T: Serialize> {
-    name: &'static str,
-    value: T,
-}
+mod valves;
+use valves::get_valve_paths;
 
-fn render<T>(template: WithTemplate<T>, hbs: Arc<Handlebars>) -> impl warp::Reply
-where
-    T: Serialize,
-{
-    let render = hbs
-        .render(template.name, &template.value)
-        .unwrap_or_else(|err| err.to_string());
-    warp::reply::html(render)
-}
+mod hb;
+use hb::render;
+use hb::WithTemplate;
 
 #[tokio::main]
 async fn main() {
@@ -43,7 +35,6 @@ async fn main() {
         move |with_template| render(with_template, hb.clone())
     };
 
-
     let url = Url::parse("https://localhost:4040").unwrap();
     let config: Config = Config {
         adress: url,
@@ -54,30 +45,15 @@ async fn main() {
     let root = {
         let config = config.clone();
         warp::path::end()
-        .map(move || WithTemplate {
-            name: "index",
-            value: json!(*config),
-        })
-        .map(handlebars.clone())
+            .map(move || WithTemplate {
+                name: "index",
+                value: json!(*config),
+            })
+            .map(handlebars.clone())
     };
     let valve_paths = get_valve_paths(hb.clone(), config.clone());
     let static_content = warp::path("static").and(warp::fs::dir("./static/"));
 
     let route = warp::get().and(root.or(static_content).or(valve_paths));
     warp::serve(route).run(([127, 0, 0, 1], 3030)).await;
-}
-
-fn get_valve_paths(hb: Arc<Handlebars> , config: Arc<Config> ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone + '_{
-        let hb = hb.clone();
-        let handlebars = move |with_template| render(with_template, hb.clone());
-        warp::path("valves")
-        .and(warp::path::param())
-        .and(warp::path::end())
-        .map(move |i: usize| WithTemplate {
-            name: "details",
-            value: json!(
-                (*config).valves[i]
-            ),
-        })
-        .map(handlebars.clone())
 }
