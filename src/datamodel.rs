@@ -30,7 +30,7 @@ impl Valve {
             name: name.to_owned(),
             index,
             valve_status: ValveStatus::Close,
-            automation_status: AutomationStatus::Scheduled,
+            automation_status: AutomationStatus::Manual,
             schedule: Schedule { status: false },
         }
     }

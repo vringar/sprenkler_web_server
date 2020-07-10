@@ -15,8 +15,8 @@
                 <th scope="col"> Nummer</th>
                 <th scope="col"> Name</th>
                 <th scope="col"> Status</th>
-                <th scope="col"> Override</th>
-                <th scope="col"> Status</th>
+                <th scope="col"> Betriebsmodus</th>
+                <th scope="col"> Zeitplan</th>
 
             </tr>
         </thead>
@@ -25,9 +25,9 @@
             <tr>
                 <td>{{this.index}}</td>
                 <td>{{this.name}}</td>
-                <td>{{this.status}}</td>
-                <td><a href="./valves/{{this.index}}/schedule">Zeitplan</a></td>
-                <td><a href="./valves/{{this.index}}/toggle">Zeitplan</a></td>
+                <td>{{this.valve_status}}</td>
+                <td><a href="./valves/{{this.index}}/toggle_automation_status">{{this.automation_status}}</a></td>
+                <td><a href="./valves/{{this.index}}/timetable">Zeitplan</a></td>
             </tr>
 
             {{/each}}
