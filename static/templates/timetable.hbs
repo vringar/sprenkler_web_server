@@ -9,5 +9,15 @@
 
 <body>
 <h1>{{name}}</h1>
-Das Ventil {{name}} ist gerade {{status}}.
+Das Ventil {{name}} ist gerade {{valve_status}} und wird durch {{automation_status}} gesteurt.
+<table>
+{{#each schedule}}
+        <tr>
+            <th scope="row"> {{@key}}</th>
+            {{#each this}}
+            <td> Von {{begin}} bis {{end}}</td>
+            {{/each}}
+        </tr>
+{{/each}}
+</table>
 </body>

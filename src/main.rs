@@ -19,7 +19,7 @@ use hb::render;
 use hb::WithTemplate;
 
 mod datamodel;
-use datamodel::{Config, Valve};
+use datamodel::{ControllerConfig, ServerConfig, Valve};
 
 #[tokio::main]
 async fn main() {
@@ -42,17 +42,24 @@ async fn main() {
     //GET /
     let root = {
         let config = config.clone();
-        warp::path::end()
-            .map(move || WithTemplate {
-                name: "index",
-                value: json!(*config),
+        warp::get()
+            .and(warp::path::end())
+            .map(move || {
+                let controller_config = config.as_ref().controller_configs[0].read();
+                let controller_config = &(*controller_config);
+                return WithTemplate {
+                    name: "index",
+                    value: json!(controller_config),
+                };
             })
             .map(handlebars.clone())
     };
     let valve_paths = get_valve_paths(hb.clone(), config.clone());
-    let static_content = warp::path("static").and(warp::fs::dir("./static/"));
+    let static_content = warp::get()
+        .and(warp::path("static"))
+        .and(warp::fs::dir("./static/"));
 
-    let routes = warp::get().and(root.or(static_content).or(valve_paths));
+    let routes = root.or(static_content).or(valve_paths);
     // hyper let's us build a server from a TcpListener (which will be
     // useful shortly). Thus, we'll need to convert our `warp::Filter` into
     // a `hyper::service::MakeService` for use with a `hyper::server::Server`.
@@ -77,11 +84,11 @@ async fn main() {
     server.serve(make_svc).await.unwrap();
 }
 
-pub fn get_sample_config() -> Arc<Config> {
+pub fn get_sample_config() -> Arc<ServerConfig> {
     let url = Url::parse("https://localhost:4040").unwrap();
-    let config: Config = Config {
+    let config: ControllerConfig = ControllerConfig {
         adress: url,
         valves: vec![Valve::new("blub", 0)],
     };
-    Arc::new(config)
+    Arc::new(ServerConfig::new(config))
 }
