@@ -1,8 +1,14 @@
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use chrono::Weekday;
+#[derive(Serialize, Deserialize, Debug)]
+struct DailySchedule {
+
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Schedule {
+    daily_schedule: [DailySchedule; 7],
     status: bool,
 }
 #[derive(Serialize, Deserialize, Debug)]
