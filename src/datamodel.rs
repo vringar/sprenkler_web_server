@@ -5,11 +5,21 @@ use chrono::Weekday;
 struct DailySchedule {
 
 }
+impl  DailySchedule {
+    fn new() -> Self {
+        DailySchedule {}
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Schedule {
     daily_schedule: [DailySchedule; 7],
-    status: bool,
+}
+
+impl Schedule {
+    fn empty() -> Self{
+        Schedule { daily_schedule: [DailySchedule::new(), DailySchedule::new(), DailySchedule::new(), DailySchedule::new(), DailySchedule::new(), DailySchedule::new(),DailySchedule::new()] }
+    }
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ValveStatus {
@@ -37,7 +47,7 @@ impl Valve {
             index,
             valve_status: ValveStatus::Close,
             automation_status: AutomationStatus::Manual,
-            schedule: Schedule { status: false },
+            schedule: Schedule::empty(),
         }
     }
 }

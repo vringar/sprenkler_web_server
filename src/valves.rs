@@ -19,7 +19,7 @@ pub fn get_valve_paths(
         .and(warp::path::param())
         .and(warp::path::end())
         .map(move |i: usize| WithTemplate {
-            name: "details",
+            name: "timetable",
             value: json!((*config).valves[i]),
         })
         .map(handlebars.clone())
