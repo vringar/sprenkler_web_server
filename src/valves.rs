@@ -1,15 +1,13 @@
 use std::sync::Arc;
 use warp::{Filter, Rejection};
-use warp::http::StatusCode;
 
 use handlebars::Handlebars;
-use serde_json::json;
 
 use crate::hb::render;
-use crate::hb::WithTemplate;
 
-use crate::datamodel::{ServerConfig, AutomationStatus, ValveStatus};
-use chrono::Local;
+use crate::datamodel::{AutomationStatus, ServerConfig, ValveStatus};
+use filters::{valve_toggle, with_server_config};
+use handlers::get_details_template;
 
 pub fn get_valve_paths(
     hb: Arc<Handlebars>,
@@ -17,39 +15,94 @@ pub fn get_valve_paths(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone + '_ {
     let hb = hb.clone();
     let handlebars = move |with_template| render(with_template, hb.clone());
-    let root = {   let config = config.clone();
-         warp::get()
-        .and(warp::path::param())
-        .and(warp::path::end())
-        .map(move |i: usize| {
-            let controller_config = config.as_ref().controller_configs[0].read();
-            let valve = &controller_config.valves[i];
-            let valve = json!(valve);
-            println!("{}",valve);
-            WithTemplate {
-            name: "timetable",
-            value: valve,
-        }})
-        .map(handlebars.clone())
+    let root = {
+        let config = config.clone();
+        warp::get()
+            .and(warp::path::param())
+            .and(warp::path::end())
+            .and(with_server_config(config))
+            .map(get_details_template)
+            .map(handlebars.clone())
     };
 
-    let toggle_status = warp::post()
-    .and(warp::path::param())
-    .and(warp::path("toggle"))
-    .map(move |i: usize| {
+    let toggle_status = valve_toggle(config);
+
+    warp::path("valves").and(root.or(toggle_status))
+}
+
+mod filters {
+    use super::handlers::toggle_valve_status;
+
+    use crate::datamodel::ServerConfig;
+    use std::sync::Arc;
+    use warp::Filter;
+
+    // POST /:id/toggle
+    pub fn valve_toggle(
+        config: Arc<ServerConfig>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::post()
+            .and(warp::path::param())
+            .and(warp::path("toggle"))
+            .and(with_server_config(config))
+            .and_then(toggle_valve_status)
+    }
+    pub fn with_server_config(
+        config: Arc<ServerConfig>,
+    ) -> impl Filter<Extract = (Arc<ServerConfig>,), Error = std::convert::Infallible> + Clone {
+        warp::any().map(move || config.clone())
+    }
+}
+
+mod handlers {
+    use crate::datamodel::{AutomationStatus, ServerConfig, ValveStatus};
+    use chrono::Local;
+    use std::convert::Infallible;
+    use std::sync::Arc;
+    use warp::http::StatusCode;
+
+    use crate::hb::WithTemplate;
+    use serde_json::json;
+
+    pub async fn toggle_valve_status(
+        index: usize,
+        config: Arc<ServerConfig>,
+    ) -> Result<impl warp::Reply, Infallible> {
         let mut controller_config = config.as_ref().controller_configs[0].write();
-        let v =  & mut controller_config.valves[i];
-        let status = (&v.automation_status, &v.valve_status, &v.should_be_running(Local::now().naive_local()));
+        let v = &mut controller_config.valves[index];
+        let status = (
+            &v.automation_status,
+            &v.valve_status,
+            &v.should_be_running(Local::now().naive_local()),
+        );
         let target_state = match status {
-            (AutomationStatus::Scheduled, ValveStatus::Close, _) => (AutomationStatus::Manual, ValveStatus::Open),
-            (AutomationStatus::Scheduled, ValveStatus::Open, _) => (AutomationStatus::Manual, ValveStatus::Close),
-            (AutomationStatus::Manual, _, true) => (AutomationStatus::Scheduled, ValveStatus::Open ),
-            (AutomationStatus::Manual, _, false) => (AutomationStatus::Scheduled, ValveStatus::Close)
+            (AutomationStatus::Scheduled, ValveStatus::Close, _) => {
+                (AutomationStatus::Manual, ValveStatus::Open)
+            }
+            (AutomationStatus::Scheduled, ValveStatus::Open, _) => {
+                (AutomationStatus::Manual, ValveStatus::Close)
+            }
+            (AutomationStatus::Manual, _, true) => (AutomationStatus::Scheduled, ValveStatus::Open),
+            (AutomationStatus::Manual, _, false) => {
+                (AutomationStatus::Scheduled, ValveStatus::Close)
+            }
         };
         v.automation_status = target_state.0;
         v.valve_status = target_state.1;
         Ok(StatusCode::OK)
-    } );
+    }
 
-    warp::path("valves").and(root.or(toggle_status))
+    pub fn get_details_template(
+        i: usize,
+        config: Arc<ServerConfig>,
+    ) -> WithTemplate<serde_json::Value> {
+        let controller_config = config.as_ref().controller_configs[0].read();
+        let valve = &controller_config.valves[i];
+        let valve = json!(valve);
+        println!("{}", valve);
+        WithTemplate {
+            name: "timetable",
+            value: valve,
+        }
+    }
 }

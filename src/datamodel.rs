@@ -1,6 +1,6 @@
-use chrono::Weekday;
+use chrono::naive::{NaiveDateTime, NaiveTime};
 use chrono::Datelike;
-use chrono::naive::{NaiveTime, NaiveDateTime};
+use chrono::Weekday;
 use parking_lot::RwLock;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -9,19 +9,19 @@ use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Duration {
-    begin:NaiveTime,
-    end:NaiveTime
+    begin: NaiveTime,
+    end: NaiveTime,
 }
 
 impl Duration {
     fn sample() -> Self {
         let begin = NaiveTime::from_hms(12, 30, 00);
         let end = NaiveTime::from_hms(13, 00, 00);
-        Self{begin, end}
+        Self { begin, end }
     }
 }
 #[derive(Serialize, Deserialize, Debug)]
-struct DailySchedule (Vec<Duration>);
+struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
     fn new() -> Self {
@@ -30,13 +30,11 @@ impl DailySchedule {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Schedule (HashMap<Weekday, DailySchedule>);
+struct Schedule(HashMap<Weekday, DailySchedule>);
 
 impl Schedule {
     fn empty() -> Self {
-        let mut sched = Schedule (
-            HashMap::with_capacity(7)
-        );
+        let mut sched = Schedule(HashMap::with_capacity(7));
         sched.insert(Weekday::Mon, DailySchedule::new());
         sched.insert(Weekday::Tue, DailySchedule::new());
         sched.insert(Weekday::Wed, DailySchedule::new());
@@ -49,7 +47,7 @@ impl Schedule {
     fn insert(&mut self, weekday: Weekday, daily_schedule: DailySchedule) {
         self.0.insert(weekday, daily_schedule);
     }
-    fn get(&self, weekday: &Weekday)  -> &DailySchedule{
+    fn get(&self, weekday: &Weekday) -> &DailySchedule {
         self.0.get(weekday).unwrap()
     }
 }
@@ -83,14 +81,14 @@ impl Valve {
         }
     }
 
-    pub fn should_be_running(&self, current_time: NaiveDateTime) -> bool{
+    pub fn should_be_running(&self, current_time: NaiveDateTime) -> bool {
         let daily_schedule = self.schedule.get(&current_time.weekday());
-         daily_schedule.0.iter().any(
-                |d| d.begin < current_time.time() && current_time.time() < d.end
-         )
+        daily_schedule
+            .0
+            .iter()
+            .any(|d| d.begin < current_time.time() && current_time.time() < d.end)
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ControllerConfig {
