@@ -1,28 +1,18 @@
+use handlebars::Handlebars;
 use std::sync::Arc;
 use warp::{Filter, Rejection};
 
-use handlebars::Handlebars;
-
-use crate::hb::render;
-
-use crate::datamodel::{AutomationStatus, ServerConfig, ValveStatus};
-use filters::{valve_toggle, with_server_config};
-use handlers::get_details_template;
+use crate::datamodel::ServerConfig;
+use filters::{valve_overview, valve_toggle};
 
 pub fn get_valve_paths(
     hb: Arc<Handlebars>,
     config: Arc<ServerConfig>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone + '_ {
     let hb = hb.clone();
-    let handlebars = move |with_template| render(with_template, hb.clone());
     let root = {
         let config = config.clone();
-        warp::get()
-            .and(warp::path::param())
-            .and(warp::path::end())
-            .and(with_server_config(config))
-            .map(get_details_template)
-            .map(handlebars.clone())
+        valve_overview(config, hb)
     };
 
     let toggle_status = valve_toggle(config);
@@ -31,7 +21,9 @@ pub fn get_valve_paths(
 }
 
 mod filters {
-    use super::handlers::toggle_valve_status;
+    use super::handlers::{get_details_template, toggle_valve_status};
+    use crate::hb::render;
+    use handlebars::Handlebars;
 
     use crate::datamodel::ServerConfig;
     use std::sync::Arc;
@@ -46,6 +38,19 @@ mod filters {
             .and(warp::path("toggle"))
             .and(with_server_config(config))
             .and_then(toggle_valve_status)
+    }
+
+    pub fn valve_overview(
+        config: Arc<ServerConfig>,
+        hb: Arc<Handlebars>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_ {
+        let render = move |t| render(t, hb.clone());
+        warp::get()
+            .and(warp::path::param())
+            .and(warp::path::end())
+            .and(with_server_config(config))
+            .map(get_details_template)
+            .map(render.clone())
     }
     pub fn with_server_config(
         config: Arc<ServerConfig>,
@@ -62,6 +67,7 @@ mod handlers {
     use warp::http::StatusCode;
 
     use crate::hb::WithTemplate;
+
     use serde_json::json;
 
     pub async fn toggle_valve_status(
