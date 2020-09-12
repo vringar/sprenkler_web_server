@@ -88,7 +88,7 @@ pub fn get_sample_config() -> Arc<ServerConfig> {
     let url = Url::parse("https://localhost:4040").unwrap();
     let config: ControllerConfig = ControllerConfig {
         adress: url,
-        valves: vec![Valve::new("blub", 0)],
+        valves: vec![Valve::new("blub", 0), Valve::new("test", 1), Valve::new("new", 2)],
     };
     Arc::new(ServerConfig::new(config))
 }
