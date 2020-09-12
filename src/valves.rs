@@ -82,7 +82,10 @@ mod handlers {
         v.valve_status = match new_state {
             AutomationStatus::ForceClose => ValveStatus::Close,
             AutomationStatus::ForceOpen => ValveStatus::Open,
-            AutomationStatus::Scheduled => ValveStatus::Close, //FIXME: This is dumb
+            AutomationStatus::Scheduled => match v.should_be_running(Local::now().naive_local()) {
+                true => ValveStatus::Open,
+                false => ValveStatus::Close,
+            },
         };
         Ok(StatusCode::OK)
     }
