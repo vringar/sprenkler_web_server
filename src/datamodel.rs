@@ -51,15 +51,16 @@ impl Schedule {
         self.0.get(weekday).unwrap()
     }
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ValveStatus {
     Open,
     Close,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AutomationStatus {
+    ForceOpen,
     Scheduled,
-    Manual,
+    ForceClose,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Valve {
@@ -76,7 +77,7 @@ impl Valve {
             name: name.to_owned(),
             index,
             valve_status: ValveStatus::Close,
-            automation_status: AutomationStatus::Manual,
+            automation_status: AutomationStatus::ForceClose,
             schedule: Schedule::empty(),
         }
     }
