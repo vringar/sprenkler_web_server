@@ -10,7 +10,7 @@
 <body>
     <h1>Sprenklerventil Kontroll Interface v0.1</h1>
     <table>
-        <thead>
+        <thead class="tablehead">
             <tr>
                 <th scope="col"> Nummer</th>
                 <th scope="col"> Name</th>
@@ -22,7 +22,7 @@
         </thead>
         <tbody>
             {{#each valves}}
-            <tr>
+            <tr class="tablebody">
                 <td>{{this.index}}</td>
                 <td>{{this.name}}</td>
                 <td>{{this.valve_status}}</td>
