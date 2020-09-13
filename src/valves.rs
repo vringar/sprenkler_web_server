@@ -97,6 +97,7 @@ mod handlers {
         let controller_config = config.as_ref().controller_configs[0].read();
         let valve = &controller_config.valves[i];
         let valve = json!(valve);
+        
         println!("{}", valve);
         WithTemplate {
             name: "timetable",

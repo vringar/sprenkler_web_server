@@ -25,7 +25,7 @@ struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
     fn new() -> Self {
-        DailySchedule(vec![Duration::sample()])
+        DailySchedule(vec![Duration::sample(), Duration::sample(), Duration::sample()])
     }
 }
 

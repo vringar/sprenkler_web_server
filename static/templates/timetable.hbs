@@ -10,14 +10,14 @@
 <body>
 <h1>{{name}}</h1>
 Das Ventil {{name}} ist gerade {{valve_status}} und wird durch {{automation_status}} gesteurt.
-<table>
+<div class="wrapper">
 {{#each schedule}}
-        <tr>
-            <th scope="row"> {{@key}}</th>
+        <div class= "column">
+            <div class= "heading">{{@key}}</div>
             {{#each this}}
-            <td> Von {{begin}} bis {{end}}</td>
+            <div class="value"> Von {{begin}} bis {{end}}</div>
             {{/each}}
-        </tr>
+        </div>
 {{/each}}
 </table>
 </body>
