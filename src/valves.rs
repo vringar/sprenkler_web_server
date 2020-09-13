@@ -37,6 +37,7 @@ mod filters {
             .and(warp::path::param())
             .and(warp::path("toggle"))
             .and(with_server_config(config))
+            .and(warp::body::json())
             .and_then(toggle_valve_status)
     }
 
@@ -73,28 +74,19 @@ mod handlers {
     pub async fn toggle_valve_status(
         index: usize,
         config: Arc<ServerConfig>,
+        new_state: AutomationStatus,
     ) -> Result<impl warp::Reply, Infallible> {
         let mut controller_config = config.as_ref().controller_configs[0].write();
         let v = &mut controller_config.valves[index];
-        let status = (
-            &v.automation_status,
-            &v.valve_status,
-            &v.should_be_running(Local::now().naive_local()),
-        );
-        let target_state = match status {
-            (AutomationStatus::Scheduled, ValveStatus::Close, _) => {
-                (AutomationStatus::Manual, ValveStatus::Open)
-            }
-            (AutomationStatus::Scheduled, ValveStatus::Open, _) => {
-                (AutomationStatus::Manual, ValveStatus::Close)
-            }
-            (AutomationStatus::Manual, _, true) => (AutomationStatus::Scheduled, ValveStatus::Open),
-            (AutomationStatus::Manual, _, false) => {
-                (AutomationStatus::Scheduled, ValveStatus::Close)
-            }
+        v.automation_status = new_state.clone();
+        v.valve_status = match new_state {
+            AutomationStatus::ForceClose => ValveStatus::Close,
+            AutomationStatus::ForceOpen => ValveStatus::Open,
+            AutomationStatus::Scheduled => match v.should_be_running(Local::now().naive_local()) {
+                true => ValveStatus::Open,
+                false => ValveStatus::Close,
+            },
         };
-        v.automation_status = target_state.0;
-        v.valve_status = target_state.1;
         Ok(StatusCode::OK)
     }
 
