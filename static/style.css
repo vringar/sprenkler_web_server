@@ -1,10 +1,13 @@
 h1{
-    text-align: center;}
+    text-align: center;
+    text-decoration: underline;
+}
 
 body {
     background-color: lightblue;
     margin-right: auto;
     margin-left: auto;
+    font-family: 'Lucida Console', Courier, monospace;
 }
 
 table{
@@ -14,12 +17,21 @@ table{
 }
 
 table, th, td{
-    border: 2px solid black;
+    border: 3px solid black;
     text-align: center;
     padding: 10px;
 }
 
-.tbody tr:hover{
-    background-color: gray;
+.tablehead{
+    background-color: rgb(54, 131, 161);
 }
+
+.tablebody{
+    background-color: rgb(218, 218, 218);
+}
+
+.tablebody:hover{
+    background-color: rgb(180, 180, 180);
+}
+
 
