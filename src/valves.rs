@@ -70,7 +70,9 @@ mod handlers {
     use crate::hb::WithTemplate;
 
     use serde_json::json;
+    use tracing::{event, Level, instrument};
 
+    #[instrument]
     pub async fn toggle_valve_status(
         index: usize,
         config: Arc<ServerConfig>,
@@ -89,7 +91,7 @@ mod handlers {
         };
         Ok(StatusCode::OK)
     }
-
+    #[instrument]
     pub fn get_details_template(
         i: usize,
         config: Arc<ServerConfig>,
@@ -97,8 +99,8 @@ mod handlers {
         let controller_config = config.as_ref().controller_configs[0].read();
         let valve = &controller_config.valves[i];
         let valve = json!(valve);
-        
-        println!("{}", valve);
+        event!(Level::INFO, "The json looks like this {:?} ",valve);
+
         WithTemplate {
             name: "timetable",
             value: valve,
