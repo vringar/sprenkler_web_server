@@ -13,8 +13,8 @@ Das Ventil {{name}} ist gerade {{valve_status}} und wird durch {{automation_stat
 <table>
 {{#each schedule}}
         <tr>
-            <th scope="row"> {{@key}}</th>
-            {{#each this}}
+            <th scope="row"> {{this.[0]}}</th>
+            {{#each this.[1]}}
             <td> Von {{begin}} bis {{end}}</td>
             {{/each}}
         </tr>

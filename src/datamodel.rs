@@ -3,7 +3,7 @@ use chrono::Datelike;
 use chrono::Weekday;
 use parking_lot::RwLock;
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 use std::collections::HashMap;
 
@@ -25,12 +25,12 @@ struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
     fn new() -> Self {
-        DailySchedule(vec![Duration::sample()])
+        DailySchedule(vec![Duration::sample(), Duration::sample(), Duration::sample()])
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Schedule(HashMap<Weekday, DailySchedule>);
+struct Schedule(#[serde(serialize_with = "daymap")] HashMap<Weekday, DailySchedule>);
 
 impl Schedule {
     fn empty() -> Self {
@@ -50,6 +50,15 @@ impl Schedule {
     fn get(&self, weekday: &Weekday) -> &DailySchedule {
         self.0.get(weekday).unwrap()
     }
+}
+
+fn daymap<S>(value: &HashMap<Weekday, DailySchedule>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut ordered: Vec<_> = value.iter().collect();
+    ordered.sort_by(|a, b| a.0.num_days_from_monday().cmp(&b.0.num_days_from_monday()));
+    ordered.serialize(serializer)
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ValveStatus {
