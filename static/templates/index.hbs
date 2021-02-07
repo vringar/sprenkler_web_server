@@ -28,7 +28,16 @@
                 <td>{{this.index}}</td>
                 <td>{{this.name}}</td>
                 <td>{{this.valve_status}}</td>
-                <td><a href="./valves/{{this.index}}/toggle_status">{{this.automation_status}}</a></td>
+                <td>
+                     <input type="radio" name="automation_status" id="forceOpen" value="ForceOpen"
+                     {{#ifeq this.automation_status "ForceOpen"}} checked {{/ifeq}} >
+                     <label for="forceOpen">Auf</label>
+                     <input type="radio" name="automation_status" id="scheduled" value="Scheduled"
+                     {{#ifeq this.automation_status "Scheduled"}} checked {{/ifeq}} >
+                     <label for="scheduled">Automatik</label>
+                     <input type="radio" name="automation_status" id="forceClose" value="ForceClose"
+                     {{#ifeq this.automation_status "ForceClose"}} checked {{/ifeq}} >
+                     <label for="forceClose">Zu</label>
                 <td><a href="./valves/{{this.index}}">Zeitplan</a></td>
             </tr>
 
