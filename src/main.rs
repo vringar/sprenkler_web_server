@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use reqwest::Url;
 
-
 use serde_json::json;
 use warp::Filter;
 
@@ -41,7 +40,7 @@ async fn main() {
         .init();
 
     let hb = hb::init();
-        // Turn Handlebars instance into a Filter so we can combine it
+    // Turn Handlebars instance into a Filter so we can combine it
     // easily with others...
     let hb = Arc::new(hb);
     // Create a reusable closure to render template

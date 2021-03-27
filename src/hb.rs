@@ -8,22 +8,25 @@ pub struct WithTemplate<T: Serialize> {
     pub value: T,
 }
 
-
 pub fn ifeq_helper<'reg, 'rc>(
     h: &Helper<'reg, 'rc>,
-    registery : &'reg Handlebars<'reg>,
+    registery: &'reg Handlebars<'reg>,
     context: &'rc Context,
     render_context: &mut RenderContext<'reg, 'rc>,
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
-    let param1 =  h.param(0).ok_or(RenderError::new("Param 0 is required for ifeq helper."))?;
-    let param2 = h.param(1).ok_or(RenderError::new("Param 1 is required for ifeq helper."))?;
-    let param1  = param1.render();
+    let param1 = h
+        .param(0)
+        .ok_or(RenderError::new("Param 0 is required for ifeq helper."))?;
+    let param2 = h
+        .param(1)
+        .ok_or(RenderError::new("Param 1 is required for ifeq helper."))?;
+    let param1 = param1.render();
     let param2 = param2.render();
-    if  param1 == param2 {
+    if param1 == param2 {
         h.template()
-        .map(| t | t.render(registery, context, render_context, out))
-        .ok_or(RenderError::new("ifeq helper failed to render template"))??;
+            .map(|t| t.render(registery, context, render_context, out))
+            .ok_or(RenderError::new("ifeq helper failed to render template"))??;
     }
     Ok(())
 }
@@ -45,8 +48,6 @@ pub fn init() -> Handlebars<'static> {
         .unwrap();
     hb
 }
-
-
 
 #[cfg(test)]
 mod tests {
