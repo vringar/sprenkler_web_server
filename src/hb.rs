@@ -1,8 +1,7 @@
 use serde::Serialize;
 use std::sync::Arc;
 
-use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError};
-use handlebars::{handlebars_helper};
+use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError, Renderable};
 
 pub struct WithTemplate<T: Serialize> {
     pub name: &'static str,
@@ -10,20 +9,21 @@ pub struct WithTemplate<T: Serialize> {
 }
 
 
-pub fn ifeq_helper(
-    h: &Helper,
-    _: &Handlebars,
-    _: &Context,
-    _: &mut RenderContext,
+pub fn ifeq_helper<'reg, 'rc>(
+    h: &Helper<'reg, 'rc>,
+    registery : &'reg Handlebars<'reg>,
+    context: &'rc Context,
+    render_context: &mut RenderContext<'reg, 'rc>,
     out: &mut dyn Output,
 ) -> Result<(), RenderError> {
-    if !h.is_block() {
-       return Err(RenderError::new("ifeq needs to be a block helper"));
-    }
     let param1 =  h.param(0).ok_or(RenderError::new("Param 0 is required for ifeq helper."))?;
     let param2 = h.param(1).ok_or(RenderError::new("Param 1 is required for ifeq helper."))?;
-    if param1.render() == param2.render() {
-        out.write(h.block_param().unwrap())?;
+    let param1  = param1.render();
+    let param2 = param2.render();
+    if  param1 == param2 {
+        h.template()
+        .map(| t | t.render(registery, context, render_context, out))
+        .ok_or(RenderError::new("ifeq helper failed to render template"))??;
     }
     Ok(())
 }
@@ -54,6 +54,5 @@ mod tests {
     #[test]
     fn test_helper() {
         let hb = init();
-        assert_eq!(2 + 2, 4);
     }
 }
