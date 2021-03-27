@@ -21,13 +21,27 @@
             </tr>
         </thead>
         <tbody>
-            {{#each valves}}
+            {{#each valves as valve}}
             <tr class="tablebody">
-                <td>{{this.index}}</td>
-                <td>{{this.name}}</td>
-                <td>{{this.valve_status}}</td>
-                <td><a href="./valves/{{this.index}}/toggle_status">{{this.automation_status}}</a></td>
-                <td><a href="./valves/{{this.index}}">Zeitplan</a></td>
+                <td>{{valve.index}}</td>
+                <td>{{valve.name}}</td>
+                <td>{{valve.valve_status}}</td>
+                <td>
+                    <form>
+                        <fieldset>
+                            <input type="radio" id="force_open" name="ForceOpen" {{#if (eq valve.automation_status "ForceOpen") }} checked {{/if}}>
+                            <label for="force_open">Geöffnet</label><br/>
+
+                            <input type="radio" id="scheduled" name="Scheduled" {{#if (eq valve.automation_status == "Scheduled")}} checked {{/if}}>
+                            <label for="scheduled">Automatisch</label><br/>
+
+                            <input type="radio" id="force_closed" name="ForceClose" {{#if (eq valve.automation_status == "ForceClose")}} checked {{/if}}>
+                            <label for="force_closed">Geschlossen</label>
+                        </fieldset>
+                    </form>
+                    <a href="./valves/{{valve.index}}/toggle_status"></a>
+                </td>
+                <td><a href="./valves/{{valve.index}}">Zeitplan</a></td>
             </tr>
 
             {{/each}}

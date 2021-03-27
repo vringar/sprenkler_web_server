@@ -8,12 +8,14 @@ body {
     margin-right: auto;
     margin-left: auto;
     font-family: 'Lucida Console', Courier, monospace;
+    text-align: center;
 }
 
 table{
     border-collapse: collapse;
     margin-right: auto;
     margin-left: auto;
+
 }
 
 table, th, td{
