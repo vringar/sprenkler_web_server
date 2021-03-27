@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <title>Sprenklerventil Kontroll Interface</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js"></script>
+
 </head>
 
 <body>
@@ -29,13 +31,13 @@
                 <td>
                     <form>
                         <fieldset>
-                            <input type="radio" id="force_open" name="ForceOpen" {{#if (eq valve.automation_status "ForceOpen") }} checked {{/if}}>
+                            <input type="radio" id="force_open" name="ForceOpen" {{#ifeq valve.automation_status "ForceOpen" }} checked {{/if}}>
                             <label for="force_open">Geöffnet</label><br/>
 
-                            <input type="radio" id="scheduled" name="Scheduled" {{#if (eq valve.automation_status == "Scheduled")}} checked {{/if}}>
+                            <input type="radio" id="scheduled" name="Scheduled" {{#ifeq valve.automation_status "Scheduled"}} checked {{/if}}>
                             <label for="scheduled">Automatisch</label><br/>
 
-                            <input type="radio" id="force_closed" name="ForceClose" {{#if (eq valve.automation_status == "ForceClose")}} checked {{/if}}>
+                            <input type="radio" id="force_closed" name="ForceClose" {{#ifeq valve.automation_status "ForceClose"}} checked {{/if}}>
                             <label for="force_closed">Geschlossen</label>
                         </fieldset>
                     </form>

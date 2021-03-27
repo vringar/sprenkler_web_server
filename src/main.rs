@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use reqwest::Url;
 
-use handlebars::Handlebars;
 
 use serde_json::json;
 use warp::Filter;
@@ -41,15 +40,10 @@ async fn main() {
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
-    let mut hb = Handlebars::new();
-    // register the template
-    hb.register_templates_directory(".hbs", "./static/templates")
-        .unwrap();
-
-    // Turn Handlebars instance into a Filter so we can combine it
+    let hb = hb::init();
+        // Turn Handlebars instance into a Filter so we can combine it
     // easily with others...
     let hb = Arc::new(hb);
-
     // Create a reusable closure to render template
     let handlebars = {
         let hb = hb.clone();
