@@ -3,7 +3,7 @@ use std::sync::Arc;
 use warp::{Filter, Rejection};
 
 use crate::datamodel::ServerConfig;
-use filters::{valve_overview, valve_toggle};
+use filters::{valve_overview, valve_update_status};
 
 pub fn get_valve_paths(
     hb: Arc<Handlebars>,
@@ -15,13 +15,13 @@ pub fn get_valve_paths(
         valve_overview(config, hb)
     };
 
-    let toggle_status = valve_toggle(config);
+    let toggle_status = valve_update_status(config);
 
     warp::path("valves").and(root.or(toggle_status))
 }
 
 mod filters {
-    use super::handlers::{get_details_template, toggle_valve_status};
+    use super::handlers::{get_details_template, update_valve_status};
     use crate::hb::render;
     use handlebars::Handlebars;
 
@@ -29,16 +29,16 @@ mod filters {
     use std::sync::Arc;
     use warp::Filter;
 
-    // POST /:id/toggle
-    pub fn valve_toggle(
+    // POST /:id/status
+    pub fn valve_update_status(
         config: Arc<ServerConfig>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::post()
             .and(warp::path::param())
-            .and(warp::path("toggle"))
+            .and(warp::path("status"))
             .and(with_server_config(config))
             .and(warp::body::json())
-            .and_then(toggle_valve_status)
+            .and_then(update_valve_status)
     }
 
     pub fn valve_overview(
@@ -71,7 +71,7 @@ mod handlers {
 
     use serde_json::json;
 
-    pub async fn toggle_valve_status(
+    pub async fn update_valve_status(
         index: usize,
         config: Arc<ServerConfig>,
         new_state: AutomationStatus,

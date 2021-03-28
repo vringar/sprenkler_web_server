@@ -29,17 +29,17 @@
                 <td>{{this.name}}</td>
                 <td>{{this.valve_status}}</td>
                 <td>
-                    <input type="radio" id="force_open" value="ForceOpen" name="automation_status" {{#ifeq
-                        this.automation_status "ForceOpen" }} checked {{/ifeq}}>
-                    <label for="force_open">Geöffnet</label><br />
+                    <form class="automation_status_form" data-index={{this.index}}>
+                            <input type="radio" id="force_open" value="ForceOpen" name="automation_status" {{#ifeq this.automation_status "ForceOpen" }} checked {{/ifeq}}>
+                            <label for="force_open">Geöffnet</label><br/>
 
-                    <input type="radio" id="scheduled" value="Scheduled" name="automation_status" {{#ifeq
-                        this.automation_status "Scheduled" }} checked {{/ifeq}}>
-                    <label for="scheduled">Automatisch</label><br />
+                            <input type="radio" id="scheduled" value="Scheduled" name="automation_status" {{#ifeq this.automation_status "Scheduled"}} checked {{/ifeq}}>
+                            <label for="scheduled">Automatisch</label><br/>
 
-                    <input type="radio" id="force_closed" value="ForceClose" name="automation_status" {{#ifeq
-                        this.automation_status "ForceClose" }} checked {{/ifeq}}>
-                    <label for="force_closed">Geschlossen</label>
+                            <input type="radio" id="force_closed" value="ForceClose" name="automation_status" {{#ifeq this.automation_status "ForceClose"}} checked {{/ifeq}}>
+                            <label for="force_closed">Geschlossen</label>
+
+                    </form>
                 </td>
                 <td><a href="./valves/{{this.index}}">Zeitplan</a></td>
             </tr>
