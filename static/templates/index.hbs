@@ -10,6 +10,7 @@
 </head>
 
 <body>
+    <form action="/valves" method="POST" id="valve_creation_form" />
     <h1>Sprenklerventil Kontroll Interface v0.1</h1>
     <table>
         <thead class="tablehead">
@@ -19,6 +20,7 @@
                 <th scope="col"> Status</th>
                 <th scope="col"> Betriebsmodus</th>
                 <th scope="col"> Zeitplan</th>
+                <th></th>
 
             </tr>
         </thead>
@@ -29,22 +31,32 @@
                 <td>{{this.name}}</td>
                 <td>{{this.valve_status}}</td>
                 <td>
-                    <form class="automation_status_form" data-index={{this.index}}>
-                            <input type="radio" id="force_open" value="ForceOpen" name="automation_status" {{#ifeq this.automation_status "ForceOpen" }} checked {{/ifeq}}>
-                            <label for="force_open">Geöffnet</label><br/>
+                    <input type="radio" id="{{this.index}}_force_open" value="ForceOpen" name="automation_status" data-index={{this.index}}
+                     {{#ifeq this.automation_status "ForceOpen" }} checked {{/ifeq}}>
+                    <label for="{{this.index}}_force_open">Geöffnet</label><br />
 
-                            <input type="radio" id="scheduled" value="Scheduled" name="automation_status" {{#ifeq this.automation_status "Scheduled"}} checked {{/ifeq}}>
-                            <label for="scheduled">Automatisch</label><br/>
+                    <input type="radio" id="{{this.index}}_scheduled" value="Scheduled" name="automation_status" data-index={{this.index}} {{#ifeq
+                        this.automation_status "Scheduled" }} checked {{/ifeq}}>
+                    <label for="{{this.index}}_scheduled">Automatisch</label><br />
 
-                            <input type="radio" id="force_closed" value="ForceClose" name="automation_status" {{#ifeq this.automation_status "ForceClose"}} checked {{/ifeq}}>
-                            <label for="force_closed">Geschlossen</label>
-
-                    </form>
+                    <input type="radio" id="{{this.index}}_force_closed" value="ForceClose" name="automation_status" data-index={{this.index}} {{#ifeq
+                        this.automation_status "ForceClose" }} checked {{/ifeq}}>
+                    <label for="{{this.index}}_force_closed">Geschlossen</label>
                 </td>
                 <td><a href="./valves/{{this.index}}">Zeitplan</a></td>
+                <td><input type="button" value="delete" class="valve_delete_button" data-index={{this.index}}></td>
             </tr>
 
             {{/each}}
+
+            <tr class="tablebody">
+                <td><input type="number" name="index" form="valve_creation_form"></td>
+                <td><input type="text" name="name" form="valve_creation_form"></td>
+                <td><input type="submit" value="Neues Ventil anlegen" form="valve_creation_form"> </td>
+                <td></td>
+                <td></td>
+            </tr>
+            </form>
         </tbody>
     </table>
 </body>

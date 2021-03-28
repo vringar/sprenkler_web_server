@@ -6,15 +6,12 @@ use std::sync::Arc;
 
 use reqwest::Url;
 
-use serde_json::json;
 use warp::Filter;
 
-mod valves;
-use valves::get_valve_paths;
+mod paths;
+use paths::get_dynamic_paths;
 
 mod hb;
-use hb::render;
-use hb::WithTemplate;
 
 mod datamodel;
 use datamodel::{ControllerConfig, ServerConfig, Valve};
@@ -43,36 +40,14 @@ async fn main() {
     // Turn Handlebars instance into a Filter so we can combine it
     // easily with others...
     let hb = Arc::new(hb);
-    // Create a reusable closure to render template
-    let handlebars = {
-        let hb = hb.clone();
-        move |with_template| render(with_template, hb.clone())
-    };
-
     let config = get_sample_config();
-    //GET /
-    let root = {
-        let config = config.clone();
-        warp::get()
-            .and(warp::path::end())
-            .map(move || {
-                let controller_config = config.as_ref().controller_configs[0].read();
-                let controller_config = &(*controller_config);
-                return WithTemplate {
-                    name: "index",
-                    value: json!(controller_config),
-                };
-            })
-            .map(handlebars.clone())
-    };
-    let valve_paths = get_valve_paths(hb.clone(), config.clone());
+    let dynamic_paths = get_dynamic_paths(hb.clone(), config.clone());
     let static_content = warp::get()
         .and(warp::path("static"))
         .and(warp::fs::dir("./static/"));
 
-    let routes = root
+    let routes = dynamic_paths
         .or(static_content)
-        .or(valve_paths)
         .with(warp::trace::request());
     // hyper let's us build a server from a TcpListener (which will be
     // useful shortly). Thus, we'll need to convert our `warp::Filter` into

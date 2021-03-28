@@ -78,14 +78,14 @@ pub enum AutomationStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Valve {
     pub name: String,
-    pub index: i8,
+    pub index: u8,
     pub automation_status: AutomationStatus,
     pub valve_status: ValveStatus,
     schedule: Schedule,
 }
 
 impl Valve {
-    pub fn new(name: &str, index: i8) -> Self {
+    pub fn new(name: &str, index: u8) -> Self {
         Valve {
             name: name.to_owned(),
             index,
