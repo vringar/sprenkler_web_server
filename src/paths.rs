@@ -19,8 +19,12 @@ pub fn get_dynamic_paths(
     let toggle_status = valve_update_status(config.clone());
     let delete_valve = delete_valve_filter(config.clone());
 
-    homepage
-        .or(warp::path("valves").and(detail_view.or(toggle_status).or(create_valve).or(delete_valve)))
+    homepage.or(warp::path("valves").and(
+        detail_view
+            .or(toggle_status)
+            .or(create_valve)
+            .or(delete_valve),
+    ))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -30,7 +34,12 @@ pub struct CreateValveParams {
 }
 
 mod filters {
-    use super::{CreateValveParams, handlers::{create_valve, delete_valve, render_details, render_homepage, update_valve_status}};
+    use super::{
+        handlers::{
+            create_valve, delete_valve, render_details, render_homepage, update_valve_status,
+        },
+        CreateValveParams,
+    };
     use crate::hb::render;
     use handlebars::Handlebars;
 
@@ -75,12 +84,10 @@ mod filters {
             .map(render.clone())
     }
 
-
     // DELETE /:id/
     pub fn delete_valve_filter(
         config: Arc<ServerConfig>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-
         warp::delete()
             .and(warp::path::param())
             .and(warp::path::end())
@@ -110,11 +117,8 @@ mod handlers {
     use crate::datamodel::{AutomationStatus, ServerConfig, Valve, ValveStatus};
     use chrono::Local;
     use hyper::Uri;
+    use std::convert::TryInto;
     use std::sync::Arc;
-    use std::{
-        convert::{Infallible, TryInto},
-        usize,
-    };
     use warp::{http::StatusCode, reject::Reject};
 
     use crate::hb::WithTemplate;
@@ -124,12 +128,17 @@ mod handlers {
     use super::CreateValveParams;
 
     pub async fn update_valve_status(
-        index: usize,
+        index: u8,
         config: Arc<ServerConfig>,
         new_state: AutomationStatus,
-    ) -> Result<impl warp::Reply, Infallible> {
+    ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut controller_config = config.as_ref().controller_configs[0].write();
-        let v = &mut controller_config.valves[index];
+        let v = &mut controller_config
+            .valves
+            .iter_mut()
+            .filter(|v| v.index == index)
+            .last()
+            .ok_or(warp::reject::custom(InvalidIndex {}))?;
         v.automation_status = new_state.clone();
         v.valve_status = match new_state {
             AutomationStatus::ForceClose => ValveStatus::Close,
@@ -161,8 +170,12 @@ mod handlers {
         config: Arc<ServerConfig>,
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut controller_config = config.controller_configs[0].write();
-        if controller_config.valves.iter().any(|v| v.index == params.index) {
-            return Err(warp::reject::custom(InvalidIndex{}));
+        if controller_config
+            .valves
+            .iter()
+            .any(|v| v.index == params.index)
+        {
+            return Err(warp::reject::custom(InvalidIndex {}));
         }
         controller_config
             .valves
@@ -179,7 +192,10 @@ mod handlers {
         };
     }
 
-    pub async fn delete_valve(index: u8, config: Arc<ServerConfig> )  -> Result<impl warp::Reply, warp::Rejection>{
+    pub async fn delete_valve(
+        index: u8,
+        config: Arc<ServerConfig>,
+    ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut config = config.controller_configs[0].write();
         config.valves.retain(|v| v.index != index);
         Ok(warp::reply())

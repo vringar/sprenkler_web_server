@@ -1,3 +1,4 @@
+'use strict';
 function updateStatus(index, new_status) {
     let request = new Request(`/valves/${index}/status`,
         {
@@ -25,12 +26,10 @@ function deleteButton(index) {
 }
 
 document.addEventListener('DOMContentLoaded', (event) => {
-    for (let form of document.getElementsByClassName("automation_status_form")) {
-        let index = form.dataset.index;
-        for (let radioButton of form.getElementsByTagName("input")) {
-            let value = radioButton.value;
-            radioButton.addEventListener("click", (elem, ev) => { updateStatus(index, value) })
-        }
+    for (let radioButton of document.getElementsByClassName("automation_status_radio")) {
+        let index = radioButton.dataset.index;
+        let value = radioButton.value;
+        radioButton.addEventListener("click", (elem, ev) => { updateStatus(index, value) })
     }
     for (let button of document.getElementsByClassName("valve_delete_button")) {
 
