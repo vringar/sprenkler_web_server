@@ -54,6 +54,6 @@ mod tests {
     use super::init;
     #[test]
     fn test_helper() {
-        let hb = init();
+        let _hb = init();
     }
 }
