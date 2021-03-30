@@ -2,15 +2,16 @@ use handlebars::Handlebars;
 use std::sync::Arc;
 use warp::{Filter, Rejection};
 
-use crate::datamodel::ServerConfig;
 use filters::{detail_view_filter, valve_update_status};
 use serde::{Deserialize, Serialize};
+
+use crate::datamodel::ServerConfig;
 
 use self::filters::{create_valve_filter, delete_valve_filter, homepage_filter};
 
 pub fn get_dynamic_paths(
     hb: Arc<Handlebars>,
-    config: Arc<ServerConfig>,
+    config: ServerConfig,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone + '_ {
     let homepage = homepage_filter(config.clone(), hb.clone());
     let create_valve = create_valve_filter(config.clone());
@@ -40,29 +41,28 @@ mod filters {
         },
         CreateValveParams,
     };
-    use crate::hb::render;
+    use crate::{datamodel::ServerConfig, hb::render};
     use handlebars::Handlebars;
 
-    use crate::datamodel::ServerConfig;
     use std::sync::Arc;
     use warp::Filter;
 
     // GET /
     pub fn homepage_filter(
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
         hb: Arc<Handlebars>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_ {
         let render = move |t| render(t, hb.clone());
         warp::get()
             .and(warp::path::end())
             .and(with_server_config(config))
-            .map(render_homepage)
-            .map(render.clone())
+            .and_then(render_homepage)
+            .and_then(render.clone())
     }
 
     // POST /
     pub fn create_valve_filter(
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::post()
             .and(warp::path::end())
@@ -72,7 +72,7 @@ mod filters {
     }
     // GET /:id/
     pub fn detail_view_filter(
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
         hb: Arc<Handlebars>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone + '_ {
         let render = move |t| render(t, hb.clone());
@@ -80,13 +80,13 @@ mod filters {
             .and(warp::path::param())
             .and(warp::path::end())
             .and(with_server_config(config))
-            .map(render_details)
-            .map(render.clone())
+            .and_then(render_details)
+            .and_then(render.clone())
     }
 
     // DELETE /:id/
     pub fn delete_valve_filter(
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::delete()
             .and(warp::path::param())
@@ -96,7 +96,7 @@ mod filters {
     }
     // POST /:id/status
     pub fn valve_update_status(
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::post()
             .and(warp::path::param())
@@ -107,8 +107,8 @@ mod filters {
     }
 
     pub fn with_server_config(
-        config: Arc<ServerConfig>,
-    ) -> impl Filter<Extract = (Arc<ServerConfig>,), Error = std::convert::Infallible> + Clone {
+        config: ServerConfig,
+    ) -> impl Filter<Extract = (ServerConfig,), Error = std::convert::Infallible> + Clone {
         warp::any().map(move || config.clone())
     }
 }
@@ -117,8 +117,7 @@ mod handlers {
     use crate::datamodel::{AutomationStatus, ServerConfig, Valve, ValveStatus};
     use chrono::Local;
     use hyper::Uri;
-    use std::convert::TryInto;
-    use std::sync::Arc;
+    use std::convert::{Infallible, TryInto};
     use warp::{http::StatusCode, reject::Reject};
 
     use crate::hb::WithTemplate;
@@ -129,10 +128,10 @@ mod handlers {
 
     pub async fn update_valve_status(
         index: u8,
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
         new_state: AutomationStatus,
     ) -> Result<impl warp::Reply, warp::Rejection> {
-        let mut controller_config = config.as_ref().controller_configs[0].write();
+        let mut controller_config = config.write().await;
         let v = &mut controller_config
             .valves
             .iter_mut()
@@ -151,15 +150,14 @@ mod handlers {
         Ok(StatusCode::OK)
     }
 
-    pub fn render_details(i: usize, config: Arc<ServerConfig>) -> WithTemplate<serde_json::Value> {
-        let controller_config = config.as_ref().controller_configs[0].read();
+    pub async fn render_details(i: usize, config: ServerConfig) -> Result<WithTemplate<serde_json::Value>, Infallible> {
+        let controller_config = config.read().await;
         let valve = &controller_config.valves[i];
         let valve = json!(valve);
-        println!("{}", valve);
-        WithTemplate {
+        Ok(WithTemplate {
             name: "timetable",
             value: valve,
-        }
+        })
     }
     #[derive(Debug)]
     pub struct InvalidIndex {}
@@ -167,9 +165,9 @@ mod handlers {
 
     pub async fn create_valve(
         params: CreateValveParams,
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
     ) -> Result<impl warp::Reply, warp::Rejection> {
-        let mut controller_config = config.controller_configs[0].write();
+        let mut controller_config = config.write().await;
         if controller_config
             .valves
             .iter()
@@ -183,20 +181,20 @@ mod handlers {
         Ok(warp::redirect(Uri::from_static("/")))
     }
 
-    pub fn render_homepage(config: Arc<ServerConfig>) -> WithTemplate<serde_json::Value> {
-        let controller_config = config.as_ref().controller_configs[0].read();
+    pub async fn render_homepage(config: ServerConfig) -> Result<WithTemplate<serde_json::Value>, Infallible> {
+        let controller_config = config.read().await;
         let controller_config = &(*controller_config);
-        return WithTemplate {
+        Ok(WithTemplate {
             name: "index",
             value: json!(controller_config),
-        };
+        })
     }
 
     pub async fn delete_valve(
         index: u8,
-        config: Arc<ServerConfig>,
+        config: ServerConfig,
     ) -> Result<impl warp::Reply, warp::Rejection> {
-        let mut config = config.controller_configs[0].write();
+        let mut config = config.write().await;
         config.valves.retain(|v| v.index != index);
         Ok(warp::reply())
     }

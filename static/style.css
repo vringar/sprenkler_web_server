@@ -36,4 +36,43 @@ table, th, td{
     background-color: rgb(180, 180, 180);
 }
 
+.table{
+    display: flex;
+    flex-direction: row;
+    margin-right: auto;
+    margin-left: auto;
+    justify-content: center;
+    margin-top: 2 em;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
+.entry {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    border: 0.1em solid black;
+    padding: 0.5em;
+    margin: 0.5em;
+}
+
+.time_form {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: left;
+}
+
+.time_form div {
+    display:inline-block;
+  text-align:center;
+}
+
+.status_text {
+    font-size: 20pt;
+}
+
 

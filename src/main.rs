@@ -1,5 +1,6 @@
 use hyper::server::Server;
 use listenfd::ListenFd;
+use tokio::sync::RwLock;
 use std::convert::Infallible;
 
 use std::sync::Arc;
@@ -73,7 +74,7 @@ async fn main() {
     server.serve(make_svc).await.unwrap();
 }
 
-pub fn get_sample_config() -> Arc<ServerConfig> {
+pub fn get_sample_config() -> ServerConfig {
     let url = Url::parse("https://localhost:4040").unwrap();
     let config: ControllerConfig = ControllerConfig {
         adress: url,
@@ -83,5 +84,5 @@ pub fn get_sample_config() -> Arc<ServerConfig> {
             Valve::new("new", 2),
         ],
     };
-    Arc::new(ServerConfig::new(config))
+    Arc::new(RwLock::new(config))
 }

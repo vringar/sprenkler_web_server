@@ -1,17 +1,34 @@
 use chrono::naive::{NaiveDateTime, NaiveTime};
 use chrono::Datelike;
 use chrono::Weekday;
-use parking_lot::RwLock;
 use reqwest::Url;
 use serde::{Deserialize, Serialize, Serializer};
+use std::{fmt, sync::{Arc, Mutex}};
+use tokio::sync::RwLock;
 
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Duration {
+pub enum Error {
+    BeginAfterEnd,
+    OverlappingDurations
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#?}", self)
+    }
+}
+
+impl std::error::Error for Error {
+
+}
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Duration {
     begin: NaiveTime,
     end: NaiveTime,
 }
+
 
 impl Duration {
     fn sample() -> Self {
@@ -19,8 +36,25 @@ impl Duration {
         let end = NaiveTime::from_hms(13, 00, 00);
         Self { begin, end }
     }
+
+    pub fn new(begin: NaiveTime, end: NaiveTime) -> Result<Duration, Error> {
+        if begin >= end {
+            return Err(Error::BeginAfterEnd);
+        }
+        Ok(Duration{begin, end})
+    }
+
+    pub fn is_overlapping(&self, other: &Self) -> bool{
+        if self.end < other.begin {
+            return false;
+        }
+        if other.end < self.begin {
+            return false;
+        }
+        return true;
+    }
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
@@ -30,6 +64,15 @@ impl DailySchedule {
             Duration::sample(),
             Duration::sample(),
         ])
+    }
+    pub fn add_entry(&mut self, duration: Duration) -> Result<(), Error> {
+        if self.0.iter().any(|v| v.is_overlapping(&duration)) {
+            return  Err(Error::OverlappingDurations);
+        }
+        Ok(self.0.push(duration))
+    }
+    pub fn remove_entry(&mut self, duration: Duration) -> Result<(), Error> {
+        Ok(self.0.retain(|d| duration != *d))
     }
 }
 
@@ -102,6 +145,14 @@ impl Valve {
             .iter()
             .any(|d| d.begin < current_time.time() && current_time.time() < d.end)
     }
+
+    pub fn add_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
+        self.schedule.0.get_mut(day).unwrap().add_entry(duration)
+    }
+
+    pub fn remove_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
+        self.schedule.0.get_mut(day).unwrap().remove_entry(duration)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -109,15 +160,5 @@ pub struct ControllerConfig {
     pub valves: Vec<Valve>,
     pub adress: Url,
 }
-#[derive(Debug)]
-pub struct ServerConfig {
-    pub controller_configs: Vec<RwLock<ControllerConfig>>,
-}
-impl ServerConfig {
-    pub fn new(cc: ControllerConfig) -> Self {
-        let cc = RwLock::from(cc);
-        ServerConfig {
-            controller_configs: vec![cc],
-        }
-    }
-}
+
+pub type ServerConfig = Arc<RwLock<ControllerConfig>>;

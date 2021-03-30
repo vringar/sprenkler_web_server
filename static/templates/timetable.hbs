@@ -10,15 +10,27 @@
 
 <body>
 <h1>{{name}}</h1>
-Das Ventil {{name}} ist gerade {{valve_status}} und wird durch {{automation_status}} gesteurt.
-<table>
-{{#each schedule}}
-        <tr>
-            <th scope="row"> {{this.[0]}}</th>
-            {{#each this.[1]}}
-            <td> Von {{begin}} bis {{end}}</td>
+<div class="status_text">Das Ventil {{name}} ist gerade {{valve_status}} und wird durch {{automation_status}} gesteurt. </div>
+<div class="table">
+{{#each schedule as |day|}}
+        <div class="column">
+            <div class="day"> {{day.[0]}}</div>
+            {{#each day.[1]}}
+            <div id={{day.[0]}}_{{@index}} class="entry">
+                <div class="cell schedule"> Von {{begin}} bis {{end}}</div>
+                <input type="button" value="Remove">
+            </div>
             {{/each}}
-        </tr>
+            <form method="POST", action="/valves/" class="time_form">
+                <div><input type="time" id="{{this.[0]}}_start_time" name="start_time">
+                <label for="{{this.[0]}}_start_time"> Startzeit</label></div>
+                <div><input type="time" id="{{this.[0]}}_end_time">
+                <label for="{{this.[0]}}_end_time" name="end_time"> Endzeit</label> </div>
+                <div><input type="submit" value="Erstellen"> </div>
+            </form>
+        </div>
 {{/each}}
-</table>
+</div>
+
+<a href="/">Back</a>
 </body>

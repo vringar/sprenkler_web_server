@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
 use handlebars::{Context, Handlebars, Helper, Output, RenderContext, RenderError, Renderable};
 
@@ -30,14 +30,14 @@ pub fn ifeq_helper<'reg, 'rc>(
     }
     Ok(())
 }
-pub fn render<T>(template: WithTemplate<T>, hbs: Arc<Handlebars>) -> impl warp::Reply
+pub async fn render<'reg, T>(template: WithTemplate<T>, hbs: Arc<Handlebars<'reg>>) ->  Result<impl warp::Reply, Infallible>
 where
     T: Serialize,
 {
     let render = hbs
         .render(template.name, &template.value)
         .unwrap_or_else(|err| err.to_string());
-    warp::reply::html(render)
+    Ok(warp::reply::html(render))
 }
 
 pub fn init() -> Handlebars<'static> {
