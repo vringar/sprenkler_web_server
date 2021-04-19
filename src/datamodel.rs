@@ -3,7 +3,10 @@ use chrono::Datelike;
 use chrono::Weekday;
 use reqwest::Url;
 use serde::{Deserialize, Serialize, Serializer};
-use std::{fmt, sync::{Arc, Mutex}};
+use std::{
+    fmt,
+    sync::Arc,
+};
 use tokio::sync::RwLock;
 
 use std::collections::HashMap;
@@ -11,7 +14,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Error {
     BeginAfterEnd,
-    OverlappingDurations
+    OverlappingDurations,
 }
 
 impl fmt::Display for Error {
@@ -20,15 +23,12 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
-
-}
+impl std::error::Error for Error {}
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Duration {
     begin: NaiveTime,
     end: NaiveTime,
 }
-
 
 impl Duration {
     fn sample() -> Self {
@@ -41,10 +41,10 @@ impl Duration {
         if begin >= end {
             return Err(Error::BeginAfterEnd);
         }
-        Ok(Duration{begin, end})
+        Ok(Duration { begin, end })
     }
 
-    pub fn is_overlapping(&self, other: &Self) -> bool{
+    pub fn is_overlapping(&self, other: &Self) -> bool {
         if self.end < other.begin {
             return false;
         }
@@ -67,7 +67,7 @@ impl DailySchedule {
     }
     pub fn add_entry(&mut self, duration: Duration) -> Result<(), Error> {
         if self.0.iter().any(|v| v.is_overlapping(&duration)) {
-            return  Err(Error::OverlappingDurations);
+            return Err(Error::OverlappingDurations);
         }
         Ok(self.0.push(duration))
     }

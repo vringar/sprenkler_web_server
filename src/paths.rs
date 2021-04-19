@@ -2,7 +2,7 @@ use handlebars::Handlebars;
 use std::sync::Arc;
 use warp::{Filter, Rejection};
 
-use filters::{detail_view_filter, valve_update_status};
+use filters::{detail_view_filter, update_valve_status_filter};
 use serde::{Deserialize, Serialize};
 
 use crate::datamodel::ServerConfig;
@@ -17,7 +17,7 @@ pub fn get_dynamic_paths(
     let create_valve = create_valve_filter(config.clone());
 
     let detail_view = detail_view_filter(config.clone(), hb.clone());
-    let toggle_status = valve_update_status(config.clone());
+    let toggle_status = update_valve_status_filter(config.clone());
     let delete_valve = delete_valve_filter(config.clone());
 
     homepage.or(warp::path("valves").and(
@@ -95,7 +95,7 @@ mod filters {
             .and_then(delete_valve)
     }
     // POST /:id/status
-    pub fn valve_update_status(
+    pub fn update_valve_status_filter(
         config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::post()
