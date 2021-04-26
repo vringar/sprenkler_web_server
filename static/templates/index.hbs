@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title>Sprenklerventil Kontroll Interface</title>
     <link rel="stylesheet" href="/static/style.css">
-    <script src="/static/script.js"></script>
+    <script src="/static/index.js"></script>
 
 </head>
 
@@ -27,33 +27,33 @@
         <tbody>
             {{#each valves}}
             <tr class="tablebody">
-                <td>{{this.index}}</td>
+                <td>{{this.valve_number}}</td>
                 <td>{{this.name}}</td>
                 <td>{{this.valve_status}}</td>
                 <td>
-                        <input type="radio" id="{{this.index}}_force_open" value="ForceOpen" name="{{this.index}}_automation_status" class="automation_status_radio" data-index="{{this.index}}"
+                        <input type="radio" id="{{this.valve_number}}_force_open" value="ForceOpen" name="{{this.valve_number}}_automation_status" class="automation_status_radio" data-valve_number="{{this.valve_number}}"
                             {{#ifeq this.automation_status "ForceOpen" }} checked {{/ifeq}}
                             class="automation_status_radio">
-                        <label for="{{this.index}}_force_open">Geöffnet</label><br />
+                        <label for="{{this.valve_number}}_force_open">Geöffnet</label><br />
 
-                        <input type="radio" id="{{this.index}}_scheduled" value="Scheduled" name="{{this.index}}_automation_status" class="automation_status_radio" data-index="{{this.index}}"
+                        <input type="radio" id="{{this.valve_number}}_scheduled" value="Scheduled" name="{{this.valve_number}}_automation_status" class="automation_status_radio" data-valve_number="{{this.valve_number}}"
                             {{#ifeq this.automation_status "Scheduled" }} checked {{/ifeq}}
                             class="automation_status_radio">
-                        <label for="{{this.index}}_scheduled">Automatisch</label><br />
+                        <label for="{{this.valve_number}}_scheduled">Automatisch</label><br />
 
-                        <input type="radio" id="{{this.index}}_force_closed" value="ForceClose" name="{{this.index}}_automation_status" class="automation_status_radio" data-index="{{this.index}}"
+                        <input type="radio" id="{{this.valve_number}}_force_closed" value="ForceClose" name="{{this.valve_number}}_automation_status" class="automation_status_radio" data-valve_number="{{this.valve_number}}"
                             {{#ifeq this.automation_status "ForceClose" }} checked {{/ifeq}}
                             class="automation_status_radio">
-                        <label for="{{this.index}}_force_closed">Geschlossen</label>
+                        <label for="{{this.valve_number}}_force_closed">Geschlossen</label>
                 </td>
-                <td><a href="./valves/{{this.index}}">Zeitplan</a></td>
-                <td><input type="button" value="delete" class="valve_delete_button" data-index={{this.index}}></td>
+                <td><a href="./valves/{{this.valve_number}}">Zeitplan</a></td>
+                <td><input type="button" value="delete" class="valve_delete_button" data-valve_number={{this.valve_number}}></td>
             </tr>
 
             {{/each}}
 
             <tr class="tablebody">
-                <td><input type="number" name="index" form="valve_creation_form"></td>
+                <td><input type="number" name="valve_number" form="valve_creation_form"></td>
                 <td><input type="text" name="name" form="valve_creation_form"></td>
                 <td><input type="submit" value="Neues Ventil anlegen" form="valve_creation_form"> </td>
                 <td></td>

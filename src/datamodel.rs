@@ -3,10 +3,7 @@ use chrono::Datelike;
 use chrono::Weekday;
 use reqwest::Url;
 use serde::{Deserialize, Serialize, Serializer};
-use std::{
-    fmt,
-    sync::Arc,
-};
+use std::{fmt, sync::Arc};
 use tokio::sync::RwLock;
 
 use std::collections::HashMap;
@@ -15,6 +12,8 @@ use std::collections::HashMap;
 pub enum Error {
     BeginAfterEnd,
     OverlappingDurations,
+    InvalidValveNumber,
+    MissingDuration,
 }
 
 impl fmt::Display for Error {
@@ -24,6 +23,8 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl warp::reject::Reject for Error {}
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Duration {
     begin: NaiveTime,
@@ -94,8 +95,19 @@ impl Schedule {
     fn insert(&mut self, weekday: Weekday, daily_schedule: DailySchedule) {
         self.0.insert(weekday, daily_schedule);
     }
-    fn get(&self, weekday: &Weekday) -> &DailySchedule {
-        self.0.get(weekday).unwrap()
+}
+
+impl std::ops::Index<&Weekday> for Schedule {
+    type Output = DailySchedule;
+
+    fn index(&self, index: &Weekday) -> &Self::Output {
+        self.0.get(&index).unwrap()
+    }
+}
+
+impl std::ops::IndexMut<&Weekday> for Schedule {
+    fn index_mut(&mut self, index: &Weekday) -> &mut Self::Output {
+        self.0.get_mut(&index).unwrap()
     }
 }
 
@@ -121,17 +133,17 @@ pub enum AutomationStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Valve {
     pub name: String,
-    pub index: u8,
+    pub valve_number: u8,
     pub automation_status: AutomationStatus,
     pub valve_status: ValveStatus,
     schedule: Schedule,
 }
 
 impl Valve {
-    pub fn new(name: &str, index: u8) -> Self {
+    pub fn new(name: impl Into<String>, valve_number: u8) -> Self {
         Valve {
-            name: name.to_owned(),
-            index,
+            name: name.into(),
+            valve_number: valve_number,
             valve_status: ValveStatus::Close,
             automation_status: AutomationStatus::ForceClose,
             schedule: Schedule::empty(),
@@ -139,7 +151,7 @@ impl Valve {
     }
 
     pub fn should_be_running(&self, current_time: NaiveDateTime) -> bool {
-        let daily_schedule = self.schedule.get(&current_time.weekday());
+        let daily_schedule = &self.schedule[&current_time.weekday()];
         daily_schedule
             .0
             .iter()
@@ -157,8 +169,43 @@ impl Valve {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ControllerConfig {
-    pub valves: Vec<Valve>,
-    pub adress: Url,
+    valves: Vec<Valve>,
+    pub address: Url,
+}
+
+impl ControllerConfig {
+    pub fn new(address: Url) -> Self {
+        ControllerConfig {
+            valves: Default::default(),
+            address: address,
+        }
+    }
+
+    pub fn get(&self, valve_number: u8) -> Option<&Valve> {
+        self.valves.iter().find(|v| v.valve_number == valve_number)
+    }
+
+    pub fn get_mut(&mut self, valve_number: u8) -> Option<&mut Valve> {
+        self.valves
+            .iter_mut()
+            .find(|v| v.valve_number == valve_number)
+    }
+
+    pub fn push(&mut self, valve: Valve) {
+        self.valves.push(valve)
+    }
+
+    pub fn remove_valve(&mut self, valve_number: u8) -> bool {
+        let mut found_smt = false;
+        self.valves.retain(|v| {
+            let res = v.valve_number != valve_number;
+            if !res {
+                found_smt = true;
+            }
+            res
+        });
+        found_smt
+    }
 }
 
 pub type ServerConfig = Arc<RwLock<ControllerConfig>>;

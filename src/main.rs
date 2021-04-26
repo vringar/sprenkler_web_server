@@ -1,7 +1,7 @@
 use hyper::server::Server;
 use listenfd::ListenFd;
-use tokio::sync::RwLock;
 use std::convert::Infallible;
+use tokio::sync::RwLock;
 
 use std::sync::Arc;
 
@@ -76,13 +76,14 @@ async fn main() {
 
 pub fn get_sample_config() -> ServerConfig {
     let url = Url::parse("https://localhost:4040").unwrap();
-    let config: ControllerConfig = ControllerConfig {
-        adress: url,
-        valves: vec![
-            Valve::new("blub", 0),
-            Valve::new("test", 1),
-            Valve::new("new", 2),
-        ],
-    };
+    let mut config: ControllerConfig = ControllerConfig::new(url);
+    for valve in vec![
+        Valve::new("blub", 0),
+        Valve::new("test", 1),
+        Valve::new("new", 2),
+    ] {
+        config.push(valve)
+    }
+
     Arc::new(RwLock::new(config))
 }

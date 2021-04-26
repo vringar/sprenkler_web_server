@@ -1,6 +1,6 @@
 'use strict';
-function updateStatus(index, new_status) {
-    let request = new Request(`/valves/${index}/status`,
+function updateStatus(valve_number, new_status) {
+    let request = new Request(`/valves/${valve_number}/status`,
         {
             method: 'POST',
             headers: {
@@ -14,8 +14,8 @@ function updateStatus(index, new_status) {
         .catch((e) => console.log(e))
 }
 
-function deleteButton(index) {
-    let request = new Request(`/valves/${index}/`,
+function deleteButton(valve_number) {
+    let request = new Request(`/valves/${valve_number}/`,
         {
             method: 'DELETE',
             referrerPolicy: 'no-referrer',
@@ -27,12 +27,12 @@ function deleteButton(index) {
 
 document.addEventListener('DOMContentLoaded', (event) => {
     for (let radioButton of document.getElementsByClassName("automation_status_radio")) {
-        let index = radioButton.dataset.index;
+        let valve_number = radioButton.dataset.valve_number;
         let value = radioButton.value;
-        radioButton.addEventListener("click", (elem, ev) => { updateStatus(index, value) })
+        radioButton.addEventListener("click", (elem, ev) => { updateStatus(valve_number, value) })
     }
     for (let button of document.getElementsByClassName("valve_delete_button")) {
 
-        button.addEventListener("click", (elem, ev) => deleteButton(button.dataset.index) )
+        button.addEventListener("click", (elem, ev) => deleteButton(button.dataset.valve_number) )
     }
 });

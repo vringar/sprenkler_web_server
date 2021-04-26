@@ -21,7 +21,7 @@
                 <input type="button" value="Remove">
             </div>
             {{/each}}
-            <form method="POST" action="/valves/{{index}}/timetable" class="time_form entry">
+            <form method="POST" action="/valves/0/timetable" class="time_form entry">
                 <div><input type="time" id="{{this.[0]}}_start_time" name="start_time">
                 <label for="{{this.[0]}}_start_time"> Startzeit</label></div>
                 <div><input type="time" id="{{this.[0]}}_end_time"  name="end_time">

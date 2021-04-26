@@ -30,7 +30,10 @@ pub fn ifeq_helper<'reg, 'rc>(
     }
     Ok(())
 }
-pub async fn render<'reg, T>(template: WithTemplate<T>, hbs: Arc<Handlebars<'reg>>) ->  Result<impl warp::Reply, Infallible>
+pub async fn render<'reg, T>(
+    template: WithTemplate<T>,
+    hbs: Arc<Handlebars<'reg>>,
+) -> Result<impl warp::Reply, Infallible>
 where
     T: Serialize,
 {
