@@ -32,12 +32,6 @@ pub struct Duration {
 }
 
 impl Duration {
-    fn sample() -> Self {
-        let begin = NaiveTime::from_hms(12, 30, 00);
-        let end = NaiveTime::from_hms(13, 00, 00);
-        Self { begin, end }
-    }
-
     pub fn new(begin: NaiveTime, end: NaiveTime) -> Result<Duration, Error> {
         if begin >= end {
             return Err(Error::BeginAfterEnd);
@@ -54,18 +48,15 @@ impl Duration {
         }
         return true;
     }
+
+    pub fn contains(&self, other:&NaiveTime)  -> bool{
+        &self.begin < other && other < &self.end
+    }
 }
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
-    fn new() -> Self {
-        DailySchedule(vec![
-            Duration::sample(),
-            Duration::sample(),
-            Duration::sample(),
-        ])
-    }
     pub fn add_entry(&mut self, duration: Duration) -> Result<(), Error> {
         if self.0.iter().any(|v| v.is_overlapping(&duration)) {
             return Err(Error::OverlappingDurations);
@@ -75,6 +66,12 @@ impl DailySchedule {
     pub fn remove_entry(&mut self, duration: Duration) -> Result<(), Error> {
         Ok(self.0.retain(|d| duration != *d))
     }
+
+    pub fn should_be_running(&self, time: &NaiveTime) -> bool {
+        self.0
+            .iter()
+            .any(|d| d.contains(time))
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,13 +80,13 @@ struct Schedule(#[serde(serialize_with = "daymap")] HashMap<Weekday, DailySchedu
 impl Schedule {
     fn empty() -> Self {
         let mut sched = Schedule(HashMap::with_capacity(7));
-        sched.insert(Weekday::Mon, DailySchedule::new());
-        sched.insert(Weekday::Tue, DailySchedule::new());
-        sched.insert(Weekday::Wed, DailySchedule::new());
-        sched.insert(Weekday::Thu, DailySchedule::new());
-        sched.insert(Weekday::Fri, DailySchedule::new());
-        sched.insert(Weekday::Sat, DailySchedule::new());
-        sched.insert(Weekday::Sun, DailySchedule::new());
+        sched.insert(Weekday::Mon, DailySchedule::default());
+        sched.insert(Weekday::Tue, DailySchedule::default());
+        sched.insert(Weekday::Wed, DailySchedule::default());
+        sched.insert(Weekday::Thu, DailySchedule::default());
+        sched.insert(Weekday::Fri, DailySchedule::default());
+        sched.insert(Weekday::Sat, DailySchedule::default());
+        sched.insert(Weekday::Sun, DailySchedule::default());
         sched
     }
     fn insert(&mut self, weekday: Weekday, daily_schedule: DailySchedule) {
@@ -152,18 +149,15 @@ impl Valve {
 
     pub fn should_be_running(&self, current_time: NaiveDateTime) -> bool {
         let daily_schedule = &self.schedule[&current_time.weekday()];
-        daily_schedule
-            .0
-            .iter()
-            .any(|d| d.begin < current_time.time() && current_time.time() < d.end)
+        daily_schedule.should_be_running(&current_time.time())
     }
 
     pub fn add_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
-        self.schedule.0.get_mut(day).unwrap().add_entry(duration)
+        self.schedule[day].add_entry(duration)
     }
 
     pub fn remove_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
-        self.schedule.0.get_mut(day).unwrap().remove_entry(duration)
+        self.schedule[day].remove_entry(duration)
     }
 }
 
