@@ -1,3 +1,4 @@
+use chrono::Weekday;
 use handlebars::Handlebars;
 use std::sync::Arc;
 use warp::{Filter, Rejection};
@@ -5,7 +6,7 @@ use warp::{Filter, Rejection};
 use filters::{detail_view_filter, update_valve_status_filter};
 use serde::{Deserialize, Serialize};
 
-use crate::datamodel::ServerConfig;
+use crate::datamodel::{Duration, ServerConfig};
 
 use self::filters::{create_valve_filter, delete_valve_filter, homepage_filter};
 
@@ -34,20 +35,20 @@ pub struct CreateValveParams {
     pub name: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteValveParams {
+    day: Weekday,
+    duration: Duration
+}
 mod filters {
-    use super::{
-        handlers::{
-            create_valve, delete_valve, render_details, render_homepage, update_valve_status,
-        },
-        CreateValveParams,
-    };
+    use super::{CreateValveParams, handlers::{create_valve, delete_duration, delete_valve, render_details, render_homepage, update_valve_status}};
     use crate::{datamodel::ServerConfig, hb::render};
     use handlebars::Handlebars;
 
     use std::sync::Arc;
     use warp::Filter;
 
-    // GET /
+    /// GET /
     pub fn homepage_filter(
         config: ServerConfig,
         hb: Arc<Handlebars>,
@@ -60,7 +61,7 @@ mod filters {
             .and_then(render.clone())
     }
 
-    // POST /
+    /// POST /
     pub fn create_valve_filter(
         config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -70,7 +71,7 @@ mod filters {
             .and(with_server_config(config))
             .and_then(create_valve)
     }
-    // GET /:id/
+    /// GET /:id/
     pub fn detail_view_filter(
         config: ServerConfig,
         hb: Arc<Handlebars>,
@@ -84,7 +85,7 @@ mod filters {
             .and_then(render.clone())
     }
 
-    // DELETE /:id/
+    /// DELETE /:id/
     pub fn delete_valve_filter(
         config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -94,7 +95,7 @@ mod filters {
             .and(with_server_config(config))
             .and_then(delete_valve)
     }
-    // POST /:id/status
+    /// POST /:id/status
     pub fn update_valve_status_filter(
         config: ServerConfig,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -104,6 +105,17 @@ mod filters {
             .and(with_server_config(config))
             .and(warp::body::json())
             .and_then(update_valve_status)
+    }
+    /// DELETE /:id/valve
+    pub fn delete_duration_filter(
+        config: ServerConfig,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::delete()
+        .and(warp::path::param())
+        .and(warp::path("valve"))
+        .and(with_server_config(config))
+        .and(warp::body::json())
+        .and_then(delete_duration)
     }
 
     pub fn with_server_config(
@@ -126,7 +138,7 @@ mod handlers {
 
     use serde_json::json;
 
-    use super::CreateValveParams;
+    use super::{CreateValveParams, DeleteValveParams};
 
     pub async fn update_valve_status(
         valve_number: u8,
@@ -198,14 +210,13 @@ mod handlers {
 
     pub async fn delete_duration(
         valve_number: u8,
-        day: Weekday,
-        duration: Duration,
         config: ServerConfig,
+        params: DeleteValveParams
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut config = config.write().await;
         if let Some(valve) = config.get_mut(valve_number) {
             valve
-                .remove_duration(&day, duration)
+                .remove_duration(&params.day, params.duration)
                 .map_err(|_| warp::reject::custom(InvalidValveNumber {}))?
         } else {
             return Err(warp::reject::custom(InvalidValveNumber {}));

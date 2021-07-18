@@ -17,6 +17,8 @@ mod hb;
 mod datamodel;
 use datamodel::{ControllerConfig, ServerConfig, Valve};
 
+mod executor;
+
 use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
