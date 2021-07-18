@@ -46,7 +46,7 @@ impl Duration {
         if other.end < self.begin {
             return false;
         }
-        return true;
+        true
     }
 
     pub fn contains(&self, other:&NaiveTime)  -> bool{
@@ -61,10 +61,12 @@ impl DailySchedule {
         if self.0.iter().any(|v| v.is_overlapping(&duration)) {
             return Err(Error::OverlappingDurations);
         }
-        Ok(self.0.push(duration))
+        self.0.push(duration);
+        Ok(())
     }
     pub fn remove_entry(&mut self, duration: Duration) -> Result<(), Error> {
-        Ok(self.0.retain(|d| duration != *d))
+        self.0.retain(|d| duration != *d);
+        Ok(())
     }
 
     pub fn should_be_running(&self, time: &NaiveTime) -> bool {
@@ -98,13 +100,13 @@ impl std::ops::Index<&Weekday> for Schedule {
     type Output = DailySchedule;
 
     fn index(&self, index: &Weekday) -> &Self::Output {
-        self.0.get(&index).unwrap()
+        self.0.get(index).unwrap()
     }
 }
 
 impl std::ops::IndexMut<&Weekday> for Schedule {
     fn index_mut(&mut self, index: &Weekday) -> &mut Self::Output {
-        self.0.get_mut(&index).unwrap()
+        self.0.get_mut(index).unwrap()
     }
 }
 
@@ -140,7 +142,7 @@ impl Valve {
     pub fn new(name: impl Into<String>, valve_number: u8) -> Self {
         Valve {
             name: name.into(),
-            valve_number: valve_number,
+            valve_number,
             valve_status: ValveStatus::Close,
             automation_status: AutomationStatus::ForceClose,
             schedule: Schedule::empty(),
@@ -171,7 +173,7 @@ impl ControllerConfig {
     pub fn new(address: Url) -> Self {
         ControllerConfig {
             valves: Default::default(),
-            address: address,
+            address,
         }
     }
 

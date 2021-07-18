@@ -19,7 +19,7 @@ pub fn get_dynamic_paths(
 
     let detail_view = detail_view_filter(config.clone(), hb.clone());
     let toggle_status = update_valve_status_filter(config.clone());
-    let delete_valve = delete_valve_filter(config.clone());
+    let delete_valve = delete_valve_filter(config);
 
     homepage.or(warp::path("valves").and(
         detail_view
@@ -127,9 +127,9 @@ mod filters {
 
 mod handlers {
     use crate::datamodel::{
-        AutomationStatus, Duration, Error::InvalidValveNumber, ServerConfig, Valve, ValveStatus,
+        AutomationStatus, Error::InvalidValveNumber, ServerConfig, Valve, ValveStatus,
     };
-    use chrono::{Local, Weekday};
+    use chrono::{Local};
     use hyper::Uri;
     use std::convert::{Infallible, TryFrom};
     use warp::http::StatusCode;
