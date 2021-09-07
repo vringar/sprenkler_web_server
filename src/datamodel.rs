@@ -15,11 +15,11 @@ pub enum Error {
     OverlappingDurations,
     InvalidValveNumber,
     MissingDuration,
-    RequestError(reqwest::Error)
+    Request(reqwest::Error),
 }
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Self {
-        Self::RequestError(e)
+        Self::Request(e)
     }
 }
 
@@ -134,16 +134,17 @@ pub enum AutomationStatus {
     Scheduled,
     ForceClose,
 }
+pub type ValveNumber = u8;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Valve {
     pub name: String,
-    pub valve_number: u8,
+    pub valve_number: ValveNumber,
     pub automation_status: AutomationStatus,
     schedule: Schedule,
 }
 
 impl Valve {
-    pub fn new(name: impl Into<String>, valve_number: u8) -> Self {
+    pub fn new(name: impl Into<String>, valve_number: ValveNumber) -> Self {
         Valve {
             name: name.into(),
             valve_number,
@@ -189,11 +190,11 @@ impl ControllerConfig {
         }
     }
 
-    pub fn get(&self, valve_number: u8) -> Option<&Valve> {
+    pub fn get(&self, valve_number: ValveNumber) -> Option<&Valve> {
         self.valves.iter().find(|v| v.valve_number == valve_number)
     }
 
-    pub fn get_mut(&mut self, valve_number: u8) -> Option<&mut Valve> {
+    pub fn get_mut(&mut self, valve_number: ValveNumber) -> Option<&mut Valve> {
         self.valves
             .iter_mut()
             .find(|v| v.valve_number == valve_number)
@@ -203,7 +204,7 @@ impl ControllerConfig {
         self.valves.push(valve)
     }
 
-    pub fn remove_valve(&mut self, valve_number: u8) -> bool {
+    pub fn remove_valve(&mut self, valve_number: ValveNumber) -> bool {
         let mut found_smt = false;
         self.valves.retain(|v| {
             let res = v.valve_number != valve_number;

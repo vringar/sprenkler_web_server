@@ -17,22 +17,22 @@ pub fn ifeq_helper<'reg, 'rc>(
 ) -> Result<(), RenderError> {
     let param1 = h
         .param(0)
-        .ok_or(RenderError::new("Param 0 is required for ifeq helper."))?;
+        .ok_or_else(|| RenderError::new("Param 0 is required for ifeq helper."))?;
     let param2 = h
         .param(1)
-        .ok_or(RenderError::new("Param 1 is required for ifeq helper."))?;
+        .ok_or_else(|| RenderError::new("Param 1 is required for ifeq helper."))?;
     let param1 = param1.render();
     let param2 = param2.render();
     if param1 == param2 {
         h.template()
             .map(|t| t.render(registery, context, render_context, out))
-            .ok_or(RenderError::new("ifeq helper failed to render template"))??;
+            .ok_or_else(|| RenderError::new("ifeq helper failed to render template"))??;
     }
     Ok(())
 }
-pub async fn render<'reg, T>(
+pub async fn render<T>(
     template: WithTemplate<T>,
-    hbs: Arc<Handlebars<'reg>>,
+    hbs: Arc<Handlebars<'_>>,
 ) -> Result<impl warp::Reply, Infallible>
 where
     T: Serialize,

@@ -26,7 +26,8 @@ use tracing_subscriber::fmt::format::FmtSpan;
 async fn main() {
     // Filter traces based on the RUST_LOG env var, or, if it's not set,
     // default to show the output of the example.
-    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug,web_server=debug".to_owned());
+    let filter = std::env::var("RUST_LOG")
+        .unwrap_or_else(|_| "tracing=info,warp=debug,web_server=debug".to_owned());
 
     // Configure the default `tracing` subscriber.
     // The `fmt` subscriber from the `tracing-subscriber` crate logs `tracing`

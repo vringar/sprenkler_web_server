@@ -6,7 +6,7 @@ use warp::{Filter, Rejection};
 use filters::{detail_view_filter, update_valve_status_filter};
 use serde::{Deserialize, Serialize};
 
-use crate::datamodel::ServerConfig;
+use crate::datamodel::{ServerConfig, ValveNumber};
 
 use self::filters::{
     add_duration_filter, create_valve_filter, delete_duration_filter, delete_valve_filter,
@@ -27,7 +27,7 @@ pub fn get_dynamic_paths(
     let detail_view = detail_view_filter(config.clone(), hb.clone());
 
     let add_duration = add_duration_filter(config.clone());
-    let delete_duration = delete_duration_filter(config.clone());
+    let delete_duration = delete_duration_filter(config);
 
     homepage.or(warp::path("valves").and(
         detail_view
@@ -41,7 +41,7 @@ pub fn get_dynamic_paths(
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ValveParams {
-    pub valve_number: u8,
+    pub valve_number: ValveNumber,
     pub name: String,
 }
 
@@ -154,11 +154,14 @@ mod filters {
 mod handlers {
     use crate::datamodel::{
         AutomationStatus, Duration, Error::InvalidValveNumber, ServerConfig, Valve,
+        ValveNumber,
     };
-    use hyper::{Uri};
-    use serde::{Deserialize, de};
+    use chrono::{Local, NaiveDateTime};
+    use hyper::Uri;
+    use reqwest::Url;
+
     use std::convert::{Infallible, TryFrom};
-    use warp::{http::StatusCode};
+    use warp::http::StatusCode;
 
     use crate::hb::WithTemplate;
 
@@ -167,20 +170,20 @@ mod handlers {
     use super::{TimetableParams, ValveParams};
 
     pub async fn update_valve_status(
-        valve_number: u8,
+        valve_number: ValveNumber,
         config: ServerConfig,
         new_state: AutomationStatus,
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut controller_config = config.write().await;
         let v = &mut controller_config
             .get_mut(valve_number)
-            .ok_or(warp::reject::custom(InvalidValveNumber {}))?;
+            .ok_or_else(|| warp::reject::custom(InvalidValveNumber {}))?;
         v.automation_status = new_state.clone();
         Ok(StatusCode::OK)
     }
 
     pub async fn render_details(
-        valve_number: u8,
+        valve_number: ValveNumber,
         config: ServerConfig,
     ) -> Result<WithTemplate<serde_json::Value>, warp::Rejection> {
         let controller_config = config.read().await;
@@ -207,11 +210,24 @@ mod handlers {
         Ok(warp::redirect(Uri::from_static("/")))
     }
 
+    #[derive(Serialize, Debug)]
+    pub struct ValveData {
+        pub name: String,
+        pub valve_number: ValveNumber,
+        pub automation_status: AutomationStatus,
+        pub schedule: Schedule,
+    }
+    #[derive(Serialize, Debug)]
+    struct HomepageData {
+        pub valves: Vec<ValveData>,
+        pub address: Url,
+    }
     pub async fn render_homepage(
         config: ServerConfig,
     ) -> Result<WithTemplate<serde_json::Value>, Infallible> {
         let controller_config = config.read().await;
         let controller_config = &(*controller_config);
+
         Ok(WithTemplate {
             name: "index",
             value: json!(controller_config),
@@ -219,7 +235,7 @@ mod handlers {
     }
 
     pub async fn delete_valve(
-        valve_number: u8,
+        valve_number: ValveNumber,
         config: ServerConfig,
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut config = config.write().await;
@@ -229,7 +245,7 @@ mod handlers {
         Ok(warp::reply())
     }
     pub async fn add_duration(
-        valve_number: u8,
+        valve_number: ValveNumber,
         config: ServerConfig,
         params: TimetableParams,
     ) -> Result<impl warp::Reply, warp::Rejection> {
@@ -247,7 +263,7 @@ mod handlers {
         ))
     }
     pub async fn delete_duration(
-        valve_number: u8,
+        valve_number: ValveNumber,
         config: ServerConfig,
         params: TimetableParams,
     ) -> Result<impl warp::Reply, warp::Rejection> {
