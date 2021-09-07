@@ -3,17 +3,24 @@ use chrono::Datelike;
 use chrono::Weekday;
 use reqwest::Url;
 use serde::{Deserialize, Serialize, Serializer};
+use std::slice::{Iter, IterMut};
 use std::{fmt, sync::Arc};
 use tokio::sync::RwLock;
 
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub enum Error {
     BeginAfterEnd,
     OverlappingDurations,
     InvalidValveNumber,
     MissingDuration,
+    RequestError(reqwest::Error)
+}
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        Self::RequestError(e)
+    }
 }
 
 impl fmt::Display for Error {
@@ -49,7 +56,7 @@ impl Duration {
         true
     }
 
-    pub fn contains(&self, other:&NaiveTime)  -> bool{
+    pub fn contains(&self, other: &NaiveTime) -> bool {
         &self.begin < other && other < &self.end
     }
 }
@@ -70,9 +77,7 @@ impl DailySchedule {
     }
 
     pub fn should_be_running(&self, time: &NaiveTime) -> bool {
-        self.0
-            .iter()
-            .any(|d| d.contains(time))
+        self.0.iter().any(|d| d.contains(time))
     }
 }
 
@@ -134,7 +139,6 @@ pub struct Valve {
     pub name: String,
     pub valve_number: u8,
     pub automation_status: AutomationStatus,
-    pub valve_status: ValveStatus,
     schedule: Schedule,
 }
 
@@ -143,15 +147,23 @@ impl Valve {
         Valve {
             name: name.into(),
             valve_number,
-            valve_status: ValveStatus::Close,
             automation_status: AutomationStatus::ForceClose,
             schedule: Schedule::empty(),
         }
     }
 
-    pub fn should_be_running(&self, current_time: NaiveDateTime) -> bool {
-        let daily_schedule = &self.schedule[&current_time.weekday()];
-        daily_schedule.should_be_running(&current_time.time())
+    pub fn valve_status(&self, current_time: NaiveDateTime) -> ValveStatus {
+        match self.automation_status {
+            AutomationStatus::ForceClose => ValveStatus::Close,
+            AutomationStatus::ForceOpen => ValveStatus::Open,
+            AutomationStatus::Scheduled => {
+                let daily_schedule = &self.schedule[&current_time.weekday()];
+                match daily_schedule.should_be_running(&current_time.time()) {
+                    true => ValveStatus::Open,
+                    false => ValveStatus::Close,
+                }
+            }
+        }
     }
 
     pub fn add_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
@@ -201,6 +213,24 @@ impl ControllerConfig {
             res
         });
         found_smt
+    }
+
+    pub fn iter(&self) -> Iter<Valve> {
+        self.valves.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<Valve> {
+        self.valves.iter_mut()
+    }
+}
+
+impl IntoIterator for ControllerConfig {
+    type Item = Valve;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.valves.into_iter()
     }
 }
 

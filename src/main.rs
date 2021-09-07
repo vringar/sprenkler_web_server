@@ -1,3 +1,4 @@
+use executor::control_valves;
 use hyper::server::Server;
 use listenfd::ListenFd;
 use std::convert::Infallible;
@@ -25,7 +26,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 async fn main() {
     // Filter traces based on the RUST_LOG env var, or, if it's not set,
     // default to show the output of the example.
-    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
+    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug,web_server=debug".to_owned());
 
     // Configure the default `tracing` subscriber.
     // The `fmt` subscriber from the `tracing-subscriber` crate logs `tracing`
@@ -72,8 +73,9 @@ async fn main() {
     } else {
         Server::bind(&([127, 0, 0, 1], 3030).into())
     };
-
+    let bg_task = tokio::spawn(control_valves(config.clone()));
     server.serve(make_svc).await.unwrap();
+    bg_task.await.unwrap();
 }
 
 pub fn get_sample_config() -> ServerConfig {
