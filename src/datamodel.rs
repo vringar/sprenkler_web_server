@@ -61,7 +61,7 @@ impl Duration {
     }
 }
 #[derive(Serialize, Deserialize, Debug, Default)]
-struct DailySchedule(Vec<Duration>);
+pub struct DailySchedule(Vec<Duration>);
 
 impl DailySchedule {
     pub fn add_entry(&mut self, duration: Duration) -> Result<(), Error> {
@@ -82,7 +82,7 @@ impl DailySchedule {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Schedule(#[serde(serialize_with = "daymap")] HashMap<Weekday, DailySchedule>);
+pub struct Schedule(#[serde(serialize_with = "daymap")] HashMap<Weekday, DailySchedule>);
 
 impl Schedule {
     fn empty() -> Self {
@@ -166,7 +166,9 @@ impl Valve {
             }
         }
     }
-
+    pub fn schedule(&self) -> &Schedule {
+        &self.schedule
+    }
     pub fn add_duration(&mut self, day: &Weekday, duration: Duration) -> Result<(), Error> {
         self.schedule[day].add_entry(duration)
     }

@@ -49,6 +49,7 @@ pub fn init() -> Handlebars<'static> {
     // register the template
     hb.register_templates_directory(".hbs", "./static/templates")
         .unwrap();
+    hb.set_strict_mode(true);
     hb
 }
 

@@ -153,9 +153,10 @@ mod filters {
 
 mod handlers {
     use crate::datamodel::{
-        AutomationStatus, Duration, Error::InvalidValveNumber, ServerConfig, Valve,
-        ValveNumber,
+        AutomationStatus, ControllerConfig, Duration, Error::InvalidValveNumber, Schedule,
+        ServerConfig, Valve, ValveNumber, ValveStatus,
     };
+
     use chrono::{Local, NaiveDateTime};
     use hyper::Uri;
     use reqwest::Url;
@@ -165,9 +166,48 @@ mod handlers {
 
     use crate::hb::WithTemplate;
 
+    use serde::Serialize;
     use serde_json::json;
 
     use super::{TimetableParams, ValveParams};
+
+    #[derive(Serialize, Debug)]
+    pub struct ValveData<'a> {
+        name: &'a str,
+        valve_number: ValveNumber,
+        automation_status: AutomationStatus,
+        schedule: &'a Schedule,
+        valve_status: ValveStatus,
+    }
+
+    impl<'a> ValveData<'a> {
+        pub fn from(valve: &'a Valve, time: NaiveDateTime) -> ValveData<'a> {
+            ValveData {
+                name: &valve.name,
+                valve_number: valve.valve_number,
+                automation_status: valve.automation_status.clone(),
+                schedule: valve.schedule(),
+                valve_status: valve.valve_status(time),
+            }
+        }
+    }
+    #[derive(Serialize, Debug)]
+    struct HomepageData<'a> {
+        valves: Vec<ValveData<'a>>,
+        address: &'a Url,
+    }
+
+    impl<'a> HomepageData<'a> {
+        pub fn from(config: &'a ControllerConfig, time: NaiveDateTime) -> HomepageData<'a> {
+            HomepageData {
+                valves: config
+                    .iter()
+                    .map(|valve| ValveData::from(valve, time))
+                    .collect(),
+                address: &config.address,
+            }
+        }
+    }
 
     pub async fn update_valve_status(
         valve_number: ValveNumber,
@@ -188,14 +228,12 @@ mod handlers {
     ) -> Result<WithTemplate<serde_json::Value>, warp::Rejection> {
         let controller_config = config.read().await;
         let valve = &controller_config.get(valve_number);
-        if let None = valve {
-            return Err(warp::reject::custom(InvalidValveNumber {}));
-        }
-        let valve = json!(valve);
-        Ok(WithTemplate {
-            name: "timetable",
-            value: valve,
-        })
+        valve
+            .map(|valve| WithTemplate {
+                name: "timetable",
+                value: json!(ValveData::from(valve, Local::now().naive_local())),
+            })
+            .ok_or_else(|| warp::reject::custom(InvalidValveNumber {}))
     }
 
     pub async fn create_valve(
@@ -210,18 +248,6 @@ mod handlers {
         Ok(warp::redirect(Uri::from_static("/")))
     }
 
-    #[derive(Serialize, Debug)]
-    pub struct ValveData {
-        pub name: String,
-        pub valve_number: ValveNumber,
-        pub automation_status: AutomationStatus,
-        pub schedule: Schedule,
-    }
-    #[derive(Serialize, Debug)]
-    struct HomepageData {
-        pub valves: Vec<ValveData>,
-        pub address: Url,
-    }
     pub async fn render_homepage(
         config: ServerConfig,
     ) -> Result<WithTemplate<serde_json::Value>, Infallible> {
@@ -230,7 +256,10 @@ mod handlers {
 
         Ok(WithTemplate {
             name: "index",
-            value: json!(controller_config),
+            value: json!(HomepageData::from(
+                controller_config,
+                Local::now().naive_local()
+            )),
         })
     }
 
@@ -251,16 +280,17 @@ mod handlers {
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut config = config.write().await;
         let duration = Duration::new(params.start_time, params.end_time)?;
-        if let Some(valve) = config.get_mut(valve_number) {
-            valve
-                .add_duration(&params.day, duration)
-                .map_err(|_| warp::reject::custom(InvalidValveNumber {}))?;
-        } else {
-            return Err(warp::reject::custom(InvalidValveNumber {}));
-        }
-        Ok(warp::redirect(
-            Uri::try_from(format!("/valves/{}", valve_number)).unwrap(),
-        ))
+        config
+            .get_mut(valve_number)
+            .ok_or_else(|| warp::reject::custom(InvalidValveNumber {}))
+            .and_then(|valve| {
+                valve
+                    .add_duration(&params.day, duration)
+                    .map_err(|_| warp::reject::custom(InvalidValveNumber {}))?;
+                Ok(warp::redirect(
+                    Uri::try_from(format!("/valves/{}", valve_number)).unwrap(),
+                ))
+            })
     }
     pub async fn delete_duration(
         valve_number: ValveNumber,
@@ -269,16 +299,14 @@ mod handlers {
     ) -> Result<impl warp::Reply, warp::Rejection> {
         let mut config = config.write().await;
         let duration = Duration::new(params.start_time, params.end_time)?;
-        if let Some(valve) = config.get_mut(valve_number) {
-            valve
-                .remove_duration(&params.day, duration)
-                .map_err(|_| warp::reject::custom(InvalidValveNumber {}))?
-        } else {
-            return Err(warp::reject::custom(InvalidValveNumber {}));
-        }
-
-        Ok(warp::redirect(
-            Uri::try_from(format!("/valves/{}", valve_number)).unwrap(),
-        ))
+        config
+            .get_mut(valve_number)
+            .ok_or_else(|| warp::reject::custom(InvalidValveNumber {}))
+            .and_then(|valve| {
+                valve
+                    .remove_duration(&params.day, duration)
+                    .map_err(|_| warp::reject::custom(InvalidValveNumber {}))?;
+                Ok(warp::reply())
+            })
     }
 }
